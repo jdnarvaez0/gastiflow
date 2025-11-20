@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid">
+    <div class="card">
+        <div class="card-title">Balance Total</div>
+        <div class="card-value {% if stats.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+            ${{ "%.2f"|format(stats.balance) }}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">Ingresos</div>
+        <div class="card-value text-success">
+            ${{ "%.2f"|format(stats.total_income) }}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">Gastos</div>
+        <div class="card-value text-danger">
+            ${{ "%.2f"|format(stats.total_expenses) }}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">Movimientos Recientes</div>
+    {% if expenses %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Descripción</th>
+                    <th>Categoría</th>
+                    <th>Monto</th>
+                    <th>Tipo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr>
+                    <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ expense.description }}</td>
+                    <td>{{ expense.category }}</td>
+                    <td
+                        class="{% if expense.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                        ${{ "%.2f"|format(expense.amount) }}
+                    </td>
+                    <td>
+                        {% if expense.transaction_type == 'income' %}
+                        Ingreso
+                        {% else %}
+                        Gasto
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay movimientos registrados aún.</p>
+    {% endif %}
+</div>
+{% endblock %}

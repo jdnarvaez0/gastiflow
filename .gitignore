@@ -1,0 +1,33 @@
+# Environment variables
+.env
+.env.local
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+
+# Logs
+*.log
+bot_logs.log
+
+# Google Sheets credentials
+config/credentials.json
+credentials.json
+
+# Temporary files from bot
+temp_*.jpg
+temp_*.ogg
+temp_*.png
+
+# OS files
+.DS_Store
+Thumbs.db

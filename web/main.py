@@ -1,0 +1,86 @@
+import os
+from datetime import datetime
+from typing import Optional
+
+from fastapi import FastAPI, Request, Form, Depends, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from dotenv import load_dotenv
+
+from services.database_service import DatabaseService
+from models.expense import ExpenseSchema, Category, TransactionType
+
+# Load environment variables
+load_dotenv()
+
+# Initialize FastAPI app
+app = FastAPI(title="Gastiflow Web")
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="web/static"), name="static")
+
+# Templates
+templates = Jinja2Templates(directory="web/templates")
+
+# Database Service Dependency
+def get_db_service():
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        # Fallback for local development if not in env
+        user = os.getenv("POSTGRES_USER", "postgres")
+        password = os.getenv("POSTGRES_PASSWORD", "postgres")
+        db = os.getenv("POSTGRES_DB", "gastiflow")
+        port = os.getenv("POSTGRES_PORT", "5432")
+        host = os.getenv("POSTGRES_HOST", "localhost")
+        db_url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+    
+    return DatabaseService(db_url)
+
+@app.get("/", response_class=HTMLResponse)
+def dashboard(request: Request, db: DatabaseService = Depends(get_db_service)):
+    # Show all expenses from all users (Telegram bot + web form)
+    stats = db.get_all_stats()
+    expenses = db.get_all_expenses(limit=50)
+    
+    return templates.TemplateResponse(
+        "index.html", 
+        {"request": request, "stats": stats, "expenses": expenses}
+    )
+
+@app.get("/add", response_class=HTMLResponse)
+def add_expense_form(request: Request):
+    return templates.TemplateResponse("add_expense.html", {"request": request})
+
+@app.post("/add")
+def add_expense(
+    amount: float = Form(...),
+    description: str = Form(...),
+    category: str = Form(...),
+    transaction_type: str = Form(...),
+    date: str = Form(...),
+    db: DatabaseService = Depends(get_db_service)
+):
+    user_id = "web_user"
+    
+    try:
+        # Parse date
+        parsed_date = datetime.strptime(date, "%Y-%m-%d")
+        
+        # Create schema
+        expense_data = ExpenseSchema(
+            amount=amount,
+            description=description,
+            category=category, # Pydantic will validate against Enum
+            transaction_type=transaction_type,
+            date=parsed_date
+        )
+        
+        db.create_expense(user_id, expense_data)
+        
+        return RedirectResponse(url="/", status_code=303)
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid data: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
