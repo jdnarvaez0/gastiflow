@@ -1,65 +1,215 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="grid">
-    <div class="card">
-        <div class="card-title">Balance Total</div>
-        <div class="card-value {% if stats.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-            ${{ "%.2f"|format(stats.balance) }}
+<!-- Topbar -->
+<div class="topbar">
+    <div class="page-title">Dashboard</div>
+    <div class="user-actions">
+        <a href="/add" class="btn-primary">
+            <i class="fa-solid fa-plus"></i> Nuevo Movimiento
+        </a>
+        <div class="notifications">
+            <i class="fa-regular fa-bell"
+                style="font-size: 1.2rem; color: var(--secondary-color); cursor: pointer;"></i>
         </div>
-    </div>
-    <div class="card">
-        <div class="card-title">Ingresos</div>
-        <div class="card-value text-success">
-            ${{ "%.2f"|format(stats.total_income) }}
-        </div>
-    </div>
-    <div class="card">
-        <div class="card-title">Gastos</div>
-        <div class="card-value text-danger">
-            ${{ "%.2f"|format(stats.total_expenses) }}
+        <div class="user-profile">
+            <div style="width: 40px; height: 40px; background-color: #E2E8F0; border-radius: 50%;"></div>
         </div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-title">Movimientos Recientes</div>
-    {% if expenses %}
-    <div style="overflow-x: auto;">
+<!-- Summary Cards -->
+<div class="dashboard-grid">
+    <!-- Balance Total -->
+    <div class="stat-card">
+        <div class="stat-header">
+            <span>Balance Total</span>
+            <i class="fa-solid fa-wallet"></i>
+        </div>
+        <div class="stat-value">${{ "{:,.2f}".format(stats.balance) }}</div>
+        <div class="stat-trend">Actualizado ahora mismo</div>
+    </div>
+
+    <!-- Ingresos -->
+    <div class="stat-card">
+        <div class="stat-header">
+            <span>Ingresos (este mes)</span>
+            <i class="fa-solid fa-arrow-up" style="color: var(--success);"></i>
+        </div>
+        <div class="stat-value" style="color: var(--success);">${{ "{:,.2f}".format(stats.income) }}</div>
+        <div class="stat-trend trend-up">
+            <i class="fa-solid fa-arrow-trend-up"></i> +15.2% vs mes anterior
+        </div>
+    </div>
+
+    <!-- Gastos -->
+    <div class="stat-card">
+        <div class="stat-header">
+            <span>Gastos (este mes)</span>
+            <i class="fa-solid fa-arrow-down" style="color: var(--danger);"></i>
+        </div>
+        <div class="stat-value" style="color: var(--danger);">${{ "{:,.2f}".format(stats.expenses) }}</div>
+        <div class="stat-trend trend-down">
+            <i class="fa-solid fa-arrow-trend-down"></i> +5.1% vs mes anterior
+        </div>
+    </div>
+
+    <!-- Ahorro -->
+    <div class="stat-card">
+        <div class="stat-header">
+            <span>Ahorro (este mes)</span>
+            <i class="fa-solid fa-piggy-bank"></i>
+        </div>
+        <div class="stat-value" style="color: var(--primary-color);">${{ "{:,.2f}".format(stats.savings) }}</div>
+        <div class="stat-trend">Objetivo: $2,000,000.00</div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="charts-section">
+    <!-- Main Chart -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Resumen de Gastos</h3>
+            <div class="chart-actions">
+                <button
+                    style="border: none; background: #F3F4F6; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Este
+                    Mes</button>
+                <button
+                    style="border: none; background: transparent; padding: 5px 10px; color: var(--secondary-color); cursor: pointer;">Últimos
+                    6 meses</button>
+            </div>
+        </div>
+        <div style="position: relative; height: 250px; width: 100%;">
+            <canvas id="mainChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Categorías</h3>
+        </div>
+        <div class="category-list">
+            {% for cat in categories[:5] %}
+            <div class="category-item">
+                <div class="cat-info">
+                    <div class="cat-dot" style="background-color: var(--primary-color);"></div>
+                    <span>{{ cat.category }}</span>
+                </div>
+                <span style="font-weight: 600;">${{ "{:,.0f}".format(cat.amount) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="recent-transactions">
+    <div class="chart-header">
+        <h3>Movimientos Recientes</h3>
+        <a href="#" style="color: var(--primary-color); text-decoration: none; font-size: 0.9rem;">Ver Todos</a>
+    </div>
+    <div class="table-responsive">
         <table>
             <thead>
                 <tr>
-                    <th>Fecha</th>
                     <th>Descripción</th>
                     <th>Categoría</th>
-                    <th>Monto</th>
-                    <th>Tipo</th>
+                    <th>Fecha</th>
+                    <th style="text-align: right;">Monto</th>
                 </tr>
             </thead>
             <tbody>
                 {% for expense in expenses %}
                 <tr>
-                    <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
-                    <td>{{ expense.description }}</td>
-                    <td>{{ expense.category }}</td>
-                    <td
-                        class="{% if expense.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
-                        ${{ "%.2f"|format(expense.amount) }}
-                    </td>
                     <td>
-                        {% if expense.transaction_type == 'income' %}
-                        Ingreso
-                        {% else %}
-                        Gasto
-                        {% endif %}
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="icon-circle"
+                                style="background-color: {{ '#EAD4FF' if expense.transaction_type == 'expense' else '#D4FFE4' }}; color: {{ '#6C5DD3' if expense.transaction_type == 'expense' else '#4CE1B6' }};">
+                                <i
+                                    class="fa-solid {{ 'fa-bag-shopping' if expense.transaction_type == 'expense' else 'fa-money-bill-wave' }}"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600;">{{ expense.description }}</div>
+                                <div style="font-size: 0.8rem; color: var(--secondary-color);">{{
+                                    expense.transaction_type }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ expense.category }}</td>
+                    <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                    <td style="text-align: right; font-weight: 600;"
+                        class="{{ 'amount-negative' if expense.transaction_type == 'expense' else 'amount-positive' }}">
+                        {{ '-' if expense.transaction_type == 'expense' else '+' }}${{ "{:,.2f}".format(expense.amount)
+                        }}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% else %}
-    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay movimientos registrados aún.</p>
-    {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ctx = document.getElementById('mainChart').getContext('2d');
+
+    // Data from backend
+    const labels = {{ history.labels | tojson }};
+    const incomeData = {{ history.income | tojson }};
+    const expenseData = {{ history.expenses | tojson }};
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Ingresos',
+                    data: incomeData,
+                    backgroundColor: '#4CE1B6',
+                    borderRadius: 5,
+                    barThickness: 20
+                },
+                {
+                    label: 'Gastos',
+                    data: expenseData,
+                    backgroundColor: '#FF754C',
+                    borderRadius: 5,
+                    barThickness: 20
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        borderDash: [5, 5],
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}

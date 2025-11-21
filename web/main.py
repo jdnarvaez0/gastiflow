@@ -39,13 +39,27 @@ def get_db_service():
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, db: DatabaseService = Depends(get_db_service)):
-    # Show all expenses from all users (Telegram bot + web form)
-    stats = db.get_all_stats()
-    expenses = db.get_all_expenses(limit=50)
+    # Get current date
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
+
+    # Fetch data
+    monthly_stats = db.get_monthly_stats(current_year, current_month)
+    category_stats = db.get_category_stats(current_year, current_month)
+    history_stats = db.get_six_month_history()
+    recent_expenses = db.get_all_expenses(limit=5) # Reduced to 5 for the "Recent" table
     
     return templates.TemplateResponse(
         "index.html", 
-        {"request": request, "stats": stats, "expenses": expenses}
+        {
+            "request": request, 
+            "stats": monthly_stats, 
+            "categories": category_stats,
+            "history": history_stats,
+            "expenses": recent_expenses,
+            "current_date": now
+        }
     )
 
 @app.get("/add", response_class=HTMLResponse)

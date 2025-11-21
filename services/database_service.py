@@ -226,3 +226,152 @@ class DatabaseService:
             return {}
         finally:
             session.close()
+
+    def get_monthly_stats(self, year: int, month: int) -> dict:
+        """
+        Obtiene estadísticas para un mes específico
+        """
+        session = self.get_session()
+        try:
+            from sqlalchemy import func, extract, and_
+
+            # Filtros base
+            month_filter = and_(
+                extract('year', ExpenseDB.date) == year,
+                extract('month', ExpenseDB.date) == month
+            )
+
+            # Total de gastos del mes
+            total_expenses = (
+                session.query(func.sum(ExpenseDB.amount))
+                .filter(month_filter)
+                .filter(ExpenseDB.transaction_type == "expense")
+                .scalar()
+                or 0
+            )
+
+            # Total de ingresos del mes
+            total_income = (
+                session.query(func.sum(ExpenseDB.amount))
+                .filter(month_filter)
+                .filter(ExpenseDB.transaction_type == "income")
+                .scalar()
+                or 0
+            )
+            
+            # Ahorro (Income - Expense)
+            balance = float(total_income) - float(total_expenses)
+
+            return {
+                "income": float(total_income),
+                "expenses": float(total_expenses),
+                "balance": balance,
+                "savings": balance
+            }
+
+        except Exception as e:
+            logger.error(f"Error obteniendo estadísticas mensuales: {e}")
+            return {"income": 0, "expenses": 0, "balance": 0, "savings": 0}
+        finally:
+            session.close()
+
+    def get_category_stats(self, year: int, month: int) -> List[dict]:
+        """
+        Obtiene desglose de gastos por categoría para un mes
+        """
+        session = self.get_session()
+        try:
+            from sqlalchemy import func, extract, and_
+
+            month_filter = and_(
+                extract('year', ExpenseDB.date) == year,
+                extract('month', ExpenseDB.date) == month,
+                ExpenseDB.transaction_type == "expense"
+            )
+
+            results = (
+                session.query(
+                    ExpenseDB.category,
+                    func.sum(ExpenseDB.amount).label('total')
+                )
+                .filter(month_filter)
+                .group_by(ExpenseDB.category)
+                .order_by(func.sum(ExpenseDB.amount).desc())
+                .all()
+            )
+
+            return [{"category": r[0], "amount": float(r[1])} for r in results]
+
+        except Exception as e:
+            logger.error(f"Error obteniendo estadísticas por categoría: {e}")
+            return []
+        finally:
+            session.close()
+
+    def get_six_month_history(self) -> dict:
+        """
+        Obtiene historial de los últimos 6 meses para gráficos
+        """
+        session = self.get_session()
+        try:
+            from sqlalchemy import func, extract
+            from datetime import datetime, timedelta
+            from calendar import month_abbr
+
+            today = datetime.now()
+            six_months_ago = today - timedelta(days=180)
+            
+            # Single query for expenses
+            expense_query = (
+                session.query(
+                    extract('year', ExpenseDB.date).label('year'),
+                    extract('month', ExpenseDB.date).label('month'),
+                    func.sum(ExpenseDB.amount).label('total')
+                )
+                .filter(ExpenseDB.date >= six_months_ago)
+                .filter(ExpenseDB.transaction_type == "expense")
+                .group_by(extract('year', ExpenseDB.date), extract('month', ExpenseDB.date))
+                .all()
+            )
+            
+            # Single query for income
+            income_query = (
+                session.query(
+                    extract('year', ExpenseDB.date).label('year'),
+                    extract('month', ExpenseDB.date).label('month'),
+                    func.sum(ExpenseDB.amount).label('total')
+                )
+                .filter(ExpenseDB.date >= six_months_ago)
+                .filter(ExpenseDB.transaction_type == "income")
+                .group_by(extract('year', ExpenseDB.date), extract('month', ExpenseDB.date))
+                .all()
+            )
+            
+            expenses_by_month = {(int(r[0]), int(r[1])): float(r[2]) for r in expense_query}
+            income_by_month = {(int(r[0]), int(r[1])): float(r[2]) for r in income_query}
+            
+            labels = []
+            income_data = []
+            expense_data = []
+            
+            for i in range(5, -1, -1):
+                date_cursor = today - timedelta(days=i*30)
+                month = date_cursor.month
+                year = date_cursor.year
+                month_name = month_abbr[month]
+                
+                labels.append(month_name)
+                income_data.append(income_by_month.get((year, month), 0))
+                expense_data.append(expenses_by_month.get((year, month), 0))
+            
+            return {
+                "labels": labels,
+                "income": income_data,
+                "expenses": expense_data
+            }
+
+        except Exception as e:
+            logger.error(f"Error obteniendo historial: {e}")
+            return {"labels": [], "income": [], "expenses": []}
+        finally:
+            session.close()

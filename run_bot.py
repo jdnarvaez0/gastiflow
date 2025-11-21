@@ -6,6 +6,18 @@ import os
 import sys
 from dotenv import load_dotenv
 from loguru import logger
+import langchain
+
+# -------------------------------------------------------------------------
+# FIX: Monkeypatch para evitar error "module 'langchain' has no attribute 'verbose'"
+# Esto ocurre por incompatibilidad entre versiones de langchain y langchain-core
+if not hasattr(langchain, 'verbose'):
+    langchain.verbose = False
+
+if not hasattr(langchain, 'debug'):
+    langchain.debug = False
+# -------------------------------------------------------------------------
+
 
 
 def check_environment():

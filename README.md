@@ -82,7 +82,7 @@ Antes de comenzar, asegúrate de tener:
 ### 1. Clonar el repositorio
 
 ```bash
-git https://github.com/jdnarvaez0/gastiflow
+git clone https://github.com/jdnarvaez0/gastiflow
 cd gastiflow
 ```
 

@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  db: 
+  db:
     image: postgres:15
-    container_name: postgres_fintrack
+    container_name: db_gastiflow
     restart: always
     env_file:
       - .env
@@ -12,13 +12,28 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Opcional: scripts iniciales
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  bot:
+    build: .
+    container_name: gastiflow_bot
+    command: python run_bot.py
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    volumes:
+      - .:/app
+    depends_on:
+      - db
 
   web:
     build: .
+    container_name: gastiflow_web
     command: uvicorn web.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/app
@@ -26,8 +41,11 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       - db
+      - bot
 
 volumes:
   postgres_data:
