@@ -98,3 +98,71 @@ def add_expense(
         raise HTTPException(status_code=400, detail=f"Invalid data: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+# --- API Endpoints for Nuxt Frontend ---
+
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+# Add CORS middleware to allow requests from the Nuxt frontend (usually running on port 3000)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For development, allow all. In production, specify the frontend URL.
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/api/dashboard")
+def api_dashboard(db: DatabaseService = Depends(get_db_service)):
+    # Get current date
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
+
+    # Fetch data
+    monthly_stats = db.get_monthly_stats(current_year, current_month)
+    category_stats = db.get_category_stats(current_year, current_month)
+    history_stats = db.get_six_month_history()
+    recent_expenses = db.get_all_expenses(limit=5)
+    
+    return {
+        "stats": monthly_stats,
+        "categories": category_stats,
+        "history": history_stats,
+        "expenses": recent_expenses,
+        "current_date": now
+    }
+
+class ExpenseCreate(BaseModel):
+    amount: float
+    description: str
+    category: str
+    transaction_type: str
+    date: str
+
+@app.post("/api/expenses")
+def api_add_expense(expense: ExpenseCreate, db: DatabaseService = Depends(get_db_service)):
+    user_id = "web_user"
+    
+    try:
+        # Parse date
+        parsed_date = datetime.strptime(expense.date, "%Y-%m-%d")
+        
+        # Create schema
+        expense_data = ExpenseSchema(
+            amount=expense.amount,
+            description=expense.description,
+            category=expense.category,
+            transaction_type=expense.transaction_type,
+            date=parsed_date
+        )
+        
+        db.create_expense(user_id, expense_data)
+        
+        return {"message": "Expense added successfully"}
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid data: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")

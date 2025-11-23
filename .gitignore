@@ -31,3 +31,12 @@ temp_*.png
 # OS files
 .DS_Store
 Thumbs.db
+
+# Node.js / Nuxt
+node_modules/
+.nuxt/
+.output/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

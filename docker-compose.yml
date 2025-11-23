@@ -18,7 +18,7 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   bot:
-    build: .
+    build: ./backend
     container_name: gastiflow_bot
     command: python run_bot.py
     restart: always
@@ -27,16 +27,16 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     volumes:
-      - .:/app
+      - ./backend:/app
     depends_on:
       - db
 
-  web:
-    build: .
-    container_name: gastiflow_web
+  api:
+    build: ./backend
+    container_name: gastiflow_api
     command: uvicorn web.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - .:/app
+      - ./backend:/app
     ports:
       - "8000:8000"
     env_file:
@@ -46,6 +46,19 @@ services:
     depends_on:
       - db
       - bot
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - NUXT_API_URL=http://api:8000
+    container_name: gastiflow_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NUXT_API_URL=http://api:8000
+    depends_on:
+      - api
 
 volumes:
   postgres_data:

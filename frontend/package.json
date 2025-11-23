@@ -1,0 +1,21 @@
+{
+    "name": "gastiflow-frontend",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "nuxt build",
+        "dev": "nuxt dev",
+        "generate": "nuxt generate",
+        "preview": "nuxt preview",
+        "postinstall": "nuxt prepare"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.1",
+        "autoprefixer": "^10.4.22",
+        "nuxt": "^3.14.0",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^3.4.0",
+        "vue": "^3.4.0",
+        "vue-router": "^4.3.0"
+    }
+}
