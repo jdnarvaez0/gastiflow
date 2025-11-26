@@ -10,12 +10,12 @@
         "postinstall": "nuxt prepare"
     },
     "devDependencies": {
-        "@types/node": "^24.10.1",
-        "autoprefixer": "^10.4.22",
-        "nuxt": "^3.14.0",
-        "postcss": "^8.5.6",
-        "tailwindcss": "^3.4.0",
-        "vue": "^3.4.0",
+        "@iconify-json/heroicons": "^1.1.9",
+        "@nuxt/ui": "^2.15.2",
+        "@types/node": "^20.12.7",
+        "nuxt": "^3.11.2",
+        "vue": "^3.4.21",
         "vue-router": "^4.3.0"
-    }
+    },
+    "dependencies": {}
 }
