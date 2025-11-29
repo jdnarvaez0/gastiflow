@@ -24,6 +24,17 @@ class Category(str, enum.Enum):
     ROPA = "Ropa"
     TECNOLOGIA = "Tecnología"
     OTROS = "Otros"
+    COMIDA = "Comida"
+    HOGAR = "Hogar"
+    VIAJES = "Viajes"
+    GASOLINA = "Gasolina"
+    DEPORTES = "Deportes"
+    MASCOTAS = "Mascotas"
+    REGALOS = "Regalos"
+    SALARIO = "Salario"
+    FREELANCE = "Freelance"
+    VENTAS = "Ventas"
+    INVERSIONES = "Inversiones"
 
 
 # Modelo SQLAlchemy para PostgreSQL

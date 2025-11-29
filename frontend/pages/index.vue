@@ -9,9 +9,9 @@
                     <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
                 </button>
             </div>
-            <a href="#" class="btn-primary">
+            <button @click="showAddModal = true" class="btn-primary" style="border: none; cursor: pointer;">
                 <i class="fa-solid fa-plus"></i> Nuevo Movimiento
-            </a>
+            </button>
             <div class="notifications">
                 <i class="fa-regular fa-bell"
                     style="font-size: 1.2rem; color: var(--secondary-color); cursor: pointer;"></i>
@@ -23,6 +23,8 @@
             </div>
         </div>
     </div>
+
+    <AddTransactionModal :is-open="showAddModal" @close="showAddModal = false" @saved="refreshData" />
 
     <div v-if="pending" style="text-align: center; padding: 2rem;">
         Cargando datos...
@@ -163,10 +165,18 @@
 </template>
 
 <script setup>
+import AddTransactionModal from '~/components/AddTransactionModal.vue'
+
 const config = useRuntimeConfig()
-const { data, pending, error } = await useFetch('/api/dashboard', {
+const { data, pending, error, refresh } = await useFetch('/api/dashboard', {
     baseURL: config.public.apiUrl
 })
+
+const showAddModal = ref(false)
+
+const refreshData = async () => {
+    await refresh()
+}
 
 const isDark = ref(false)
 
