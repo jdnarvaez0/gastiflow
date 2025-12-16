@@ -64,6 +64,9 @@ def check_files():
     credentials_file = os.getenv(
         "GOOGLE_SHEETS_CREDENTIALS_FILE", "config/credentials.json"
     )
+    
+    # Si hay credenciales por variable de entorno, no necesitamos el archivo
+    credentials_b64 = os.getenv("GOOGLE_CREDENTIALS_B64")
 
     required_files = [
         "bot/main.py",
@@ -72,8 +75,13 @@ def check_files():
         "services/database_service.py",
         "services/sheets_service.py",
         "models/expense.py",
-        credentials_file,
     ]
+    
+    # Solo agregar archivo de credenciales si no hay variable de entorno
+    if not credentials_b64:
+        required_files.append(credentials_file)
+    else:
+        print("   ✅ Credenciales de Google (via GOOGLE_CREDENTIALS_B64)")
 
     missing_files = []
     for file in required_files:

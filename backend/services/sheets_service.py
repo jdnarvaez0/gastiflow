@@ -4,15 +4,23 @@ from models.expense import ExpenseSchema
 from datetime import datetime
 from loguru import logger
 from typing import Optional
+import os
+import json
+import base64
+import tempfile
 
 
 class SheetsService:
     def __init__(self, credentials_file: str, sheet_id: str):
         """
         Inicializa el servicio de Google Sheets
+        
+        Soporta credenciales de dos formas:
+        1. Variable de entorno GOOGLE_CREDENTIALS_B64 (Base64 encoded JSON) - para Railway/producción
+        2. Archivo de credenciales JSON - para desarrollo local
 
         Args:
-            credentials_file: Ruta al archivo JSON de credenciales
+            credentials_file: Ruta al archivo JSON de credenciales (fallback)
             sheet_id: ID de la hoja de Google Sheets
         """
         self.credentials_file = credentials_file
@@ -25,9 +33,22 @@ class SheetsService:
         ]
 
         try:
-            credentials = Credentials.from_service_account_file(
-                credentials_file, scopes=scopes
-            )
+            # Intentar cargar credenciales desde variable de entorno (producción)
+            credentials_b64 = os.getenv("GOOGLE_CREDENTIALS_B64")
+            
+            if credentials_b64:
+                logger.info("Cargando credenciales de Google desde variable de entorno")
+                credentials_json = base64.b64decode(credentials_b64).decode('utf-8')
+                credentials_info = json.loads(credentials_json)
+                credentials = Credentials.from_service_account_info(
+                    credentials_info, scopes=scopes
+                )
+            else:
+                # Fallback: cargar desde archivo (desarrollo local)
+                logger.info(f"Cargando credenciales de Google desde archivo: {credentials_file}")
+                credentials = Credentials.from_service_account_file(
+                    credentials_file, scopes=scopes
+                )
 
             self.client = gspread.authorize(credentials)
             self.spreadsheet = self.client.open_by_key(sheet_id)
