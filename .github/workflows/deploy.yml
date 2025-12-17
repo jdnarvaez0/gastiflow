@@ -1,0 +1,44 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Permite ejecutar manualmente
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/gastiflow
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Update backend dependencies
+            cd backend
+            source .venv/bin/activate
+            pip install -r requirements.txt --quiet
+            
+            # Restart services
+            sudo systemctl restart gastiflow-bot
+            sudo systemctl restart gastiflow-api
+            
+            # Show status
+            echo "=== Bot Status ==="
+            sudo systemctl status gastiflow-bot --no-pager | head -5
+            echo "=== API Status ==="
+            sudo systemctl status gastiflow-api --no-pager | head -5
+            
+            echo "✅ Deploy completed successfully!"
