@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 from services.ai_processor import AIProcessor
 from services.database_service import DatabaseService
 from services.sheets_service import SheetsService
+from services.auth_service import FREE_TRIAL_INTERACTIONS, is_trial_exceeded, get_remaining_trial
 from loguru import logger
 import os
 
@@ -13,16 +14,104 @@ class BotHandlers:
         ai_processor: AIProcessor,
         db_service: DatabaseService,
         sheets_service: SheetsService,
+        default_gemini_key: str,
     ):
-        self.ai = ai_processor
+        self.default_ai = ai_processor
         self.db = db_service
         self.sheets = sheets_service
+        self.default_gemini_key = default_gemini_key
+
+    def _get_ai_processor(self, telegram_id: str) -> tuple[AIProcessor, bool]:
+        """
+        Get the appropriate AI processor for the user.
+        Returns (ai_processor, is_registered)
+        """
+        user = self.db.get_user_by_telegram_id(telegram_id)
+        
+        if user and user.gemini_api_key:
+            # User is registered and has their own API key
+            return AIProcessor(user.gemini_api_key), True
+        
+        # Use default AI processor
+        return self.default_ai, False
+
+    def _get_user_id(self, telegram_id: str) -> str:
+        """
+        Get the correct user_id to use for saving expenses.
+        If user is registered and has telegram_id linked, use their numeric user.id
+        Otherwise, use the telegram_id as string for backward compatibility
+        """
+        user = self.db.get_user_by_telegram_id(telegram_id)
+        
+        if user and user.id:
+            # User is registered and linked, use their numeric ID
+            return str(user.id)
+        
+        # User not registered or not linked, use telegram_id
+        return telegram_id
+
+    async def _check_trial_limit(self, update: Update, telegram_id: str) -> bool:
+        """
+        Check if user has exceeded free trial.
+        Returns True if user can continue, False if blocked.
+        """
+        user = self.db.get_user_by_telegram_id(telegram_id)
+        
+        # If user is registered with their own API key, no limits
+        if user and user.gemini_api_key:
+            return True
+        
+        # Get current interaction count
+        interaction_count = self.db.get_interaction_count(telegram_id)
+        
+        if is_trial_exceeded(interaction_count):
+            await update.message.reply_text(
+                f"⚠️ Has alcanzado el límite de {FREE_TRIAL_INTERACTIONS} interacciones gratuitas.\n\n"
+                "Para seguir usando el bot, necesitas:\n"
+                "1️⃣ Registrarte en la web de Gastiflow\n"
+                "2️⃣ Obtener tu propia API Key de Google Gemini (es gratis)\n"
+                "3️⃣ Configurar tu API Key en la sección de ajustes\n"
+                "4️⃣ Vincular tu Telegram ID en ajustes\n\n"
+                f"Tu Telegram ID es: `{telegram_id}`\n\n"
+                "💡 Consejo: Puedes obtener una API Key gratis en:\n"
+                "https://aistudio.google.com/app/apikey"
+            )
+            return False
+        
+        return True
+
+    async def _increment_and_notify_trial(self, update: Update, telegram_id: str):
+        """Increment trial counter and notify user of remaining trials"""
+        user = self.db.get_user_by_telegram_id(telegram_id)
+        
+        # Don't count if user has their own API key
+        if user and user.gemini_api_key:
+            return
+        
+        new_count = self.db.increment_interaction_count(telegram_id)
+        remaining = get_remaining_trial(new_count)
+        
+        if remaining > 0 and remaining <= 2:
+            await update.message.reply_text(
+                f"⏳ Te quedan {remaining} interacciones gratuitas.\n"
+                "Regístrate en Gastiflow para seguir usando el bot sin límites."
+            )
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Comando /start - Mensaje de bienvenida
         """
-        welcome_message = """👋 ¡Hola! Soy tu asistente de gastos personales.
+        telegram_id = str(update.effective_user.id)
+        user = self.db.get_user_by_telegram_id(telegram_id)
+        interaction_count = self.db.get_interaction_count(telegram_id)
+        remaining = get_remaining_trial(interaction_count)
+        
+        if user and user.gemini_api_key:
+            status_msg = "✅ Tu cuenta está vinculada y configurada."
+        else:
+            status_msg = f"🎁 Tienes {remaining} interacciones gratuitas restantes."
+        
+        welcome_message = f"""👋 ¡Hola! Soy tu asistente de gastos personales.
 
 📸 Puedes enviarme:
 • Una foto de tu factura o recibo
@@ -40,6 +129,8 @@ class BotHandlers:
 /stats - Ver tus estadísticas
 /recent - Ver tus últimos gastos
 /help - Ayuda
+
+{status_msg}
 
 ¡Empieza enviándome una foto o describiendo tu gasto!"""
 
@@ -68,6 +159,9 @@ Escribe tu gasto:
 
 📋 **Ver historial:**
 /recent - Últimos 10 gastos
+
+🔗 **Vincular cuenta:**
+Regístrate en la web y configura tu Telegram ID para usar tu propia API Key.
 
 ¿Necesitas más ayuda? Escríbeme y te guiaré."""
 
@@ -139,18 +233,25 @@ Escribe tu gasto:
         """
         Maneja fotos de facturas
         """
-        user_id = str(update.effective_user.id)
+        telegram_id = str(update.effective_user.id)
+
+        # Check trial limit
+        if not await self._check_trial_limit(update, telegram_id):
+            return
 
         await update.message.reply_text("📸 Analizando tu factura...")
 
         try:
+            # Get appropriate AI processor
+            ai, is_registered = self._get_ai_processor(telegram_id)
+            
             # Descargar la foto
             photo = await update.message.photo[-1].get_file()
-            photo_path = f"temp_{user_id}.jpg"
+            photo_path = f"temp_{telegram_id}.jpg"
             await photo.download_to_drive(photo_path)
 
             # Procesar con IA
-            expense = self.ai.process_image(photo_path)
+            expense = ai.process_image(photo_path)
 
             # Limpiar archivo temporal
             if os.path.exists(photo_path):
@@ -166,6 +267,9 @@ Escribe tu gasto:
                 )
                 return
 
+            # Get correct user_id (numeric ID if registered, telegram_id if not)
+            user_id = self._get_user_id(telegram_id)
+            
             # Guardar en base de datos
             db_expense = self.db.create_expense(user_id, expense)
 
@@ -174,8 +278,11 @@ Escribe tu gasto:
 
             # Enviar confirmación
             await update.message.reply_text(expense.format_message())
+            
+            # Increment and notify trial
+            await self._increment_and_notify_trial(update, telegram_id)
 
-            logger.info(f"Factura procesada para usuario {user_id}")
+            logger.info(f"Factura procesada para usuario {telegram_id}")
 
         except Exception as e:
             logger.error(f"Error procesando foto: {e}")
@@ -187,18 +294,25 @@ Escribe tu gasto:
         """
         Maneja mensajes de voz
         """
-        user_id = str(update.effective_user.id)
+        telegram_id = str(update.effective_user.id)
+
+        # Check trial limit
+        if not await self._check_trial_limit(update, telegram_id):
+            return
 
         await update.message.reply_text("🎤 Escuchando tu audio...")
 
         try:
+            # Get appropriate AI processor
+            ai, is_registered = self._get_ai_processor(telegram_id)
+            
             # Descargar audio
             voice = await update.message.voice.get_file()
-            audio_path = f"temp_{user_id}.ogg"
+            audio_path = f"temp_{telegram_id}.ogg"
             await voice.download_to_drive(audio_path)
 
             # Transcribir audio
-            text = self.ai.transcribe_audio(audio_path)
+            text = ai.transcribe_audio(audio_path)
 
             # Limpiar archivo temporal
             if os.path.exists(audio_path):
@@ -213,7 +327,7 @@ Escribe tu gasto:
             await update.message.reply_text(f'📝 Entendí: "{text}"\n\nProcesando...')
 
             # Procesar texto para extraer gasto
-            expense = self.ai.process_audio_text(text)
+            expense = ai.process_audio_text(text)
 
             if not expense:
                 await update.message.reply_text(
@@ -222,6 +336,9 @@ Escribe tu gasto:
                 )
                 return
 
+            # Get correct user_id (numeric ID if registered, telegram_id if not)
+            user_id = self._get_user_id(telegram_id)
+            
             # Guardar en base de datos
             db_expense = self.db.create_expense(user_id, expense)
 
@@ -230,8 +347,11 @@ Escribe tu gasto:
 
             # Enviar confirmación
             await update.message.reply_text(expense.format_message())
+            
+            # Increment and notify trial
+            await self._increment_and_notify_trial(update, telegram_id)
 
-            logger.info(f"Audio procesado para usuario {user_id}")
+            logger.info(f"Audio procesado para usuario {telegram_id}")
 
         except Exception as e:
             logger.error(f"Error procesando audio: {e}")
@@ -243,14 +363,21 @@ Escribe tu gasto:
         """
         Maneja mensajes de texto
         """
-        user_id = str(update.effective_user.id)
+        telegram_id = str(update.effective_user.id)
         text = update.message.text
+
+        # Check trial limit
+        if not await self._check_trial_limit(update, telegram_id):
+            return
 
         await update.message.reply_text("💭 Procesando tu mensaje...")
 
         try:
+            # Get appropriate AI processor
+            ai, is_registered = self._get_ai_processor(telegram_id)
+            
             # Procesar texto
-            expense = self.ai.process_audio_text(text)
+            expense = ai.process_audio_text(text)
 
             if not expense:
                 await update.message.reply_text(
@@ -260,6 +387,9 @@ Escribe tu gasto:
                 )
                 return
 
+            # Get correct user_id (numeric ID if registered, telegram_id if not)
+            user_id = self._get_user_id(telegram_id)
+            
             # Guardar en base de datos
             db_expense = self.db.create_expense(user_id, expense)
 
@@ -268,11 +398,15 @@ Escribe tu gasto:
 
             # Enviar confirmación
             await update.message.reply_text(expense.format_message())
+            
+            # Increment and notify trial
+            await self._increment_and_notify_trial(update, telegram_id)
 
-            logger.info(f"Texto procesado para usuario {user_id}")
+            logger.info(f"Texto procesado para usuario {telegram_id}")
 
         except Exception as e:
             logger.error(f"Error procesando texto: {e}")
             await update.message.reply_text(
                 "❌ Hubo un error procesando tu mensaje. Intenta de nuevo."
             )
+

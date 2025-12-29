@@ -8,6 +8,12 @@
         </button>
       </div>
       
+      <!-- Error Message -->
+      <div v-if="errorMessage" class="error-message">
+        <i class="fa-solid fa-exclamation-circle"></i>
+        {{ errorMessage }}
+      </div>
+
       <form @submit.prevent="saveTransaction">
         <div class="form-group">
           <label>Descripción</label>
@@ -59,8 +65,11 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 const config = useRuntimeConfig()
+const { getAuthHeaders, isAuthenticated } = useAuth()
+const router = useRouter()
 
 const loading = ref(false)
+const errorMessage = ref('')
 const form = reactive({
   description: '',
   amount: '',
@@ -77,6 +86,7 @@ const categories = [
 ]
 
 const close = () => {
+  errorMessage.value = ''
   emit('close')
   // Reset form slightly delayed to avoid visual glitch
   setTimeout(() => {
@@ -85,22 +95,48 @@ const close = () => {
     form.transaction_type = 'expense'
     form.category = 'Comida'
     form.date = new Date().toISOString().split('T')[0]
+    errorMessage.value = ''
   }, 200)
 }
 
 const saveTransaction = async () => {
+  errorMessage.value = ''
+  
+  // Check authentication before attempting to save
+  if (!isAuthenticated.value) {
+    errorMessage.value = 'Debes iniciar sesión para agregar movimientos.'
+    return
+  }
+  
   loading.value = true
   try {
     await $fetch('/api/expenses', {
       baseURL: config.public.apiUrl,
       method: 'POST',
+      headers: getAuthHeaders(),
       body: form
     })
     emit('saved')
     close()
   } catch (error) {
     console.error('Error saving transaction:', error)
-    alert('Error al guardar el movimiento')
+    
+    // Handle specific error codes
+    const statusCode = error?.response?.status || error?.statusCode
+    
+    if (statusCode === 401) {
+      errorMessage.value = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.'
+      setTimeout(() => {
+        close()
+        router.push('/login')
+      }, 2000)
+    } else if (statusCode === 400) {
+      errorMessage.value = 'Datos inválidos. Por favor, revisa los campos e intenta de nuevo.'
+    } else if (statusCode === 422) {
+      errorMessage.value = 'Error de validación. Verifica que todos los campos estén correctos.'
+    } else {
+      errorMessage.value = 'Error al guardar el movimiento. Intenta de nuevo más tarde.'
+    }
   } finally {
     loading.value = false
   }
@@ -203,5 +239,28 @@ input:focus, select:focus {
 
 .btn-secondary:hover {
   background-color: var(--bg-color);
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.error-message i {
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .error-message {
+  background-color: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #f87171;
 }
 </style>

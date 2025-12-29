@@ -50,6 +50,8 @@
 
 <script setup>
 const router = useRouter()
+const config = useRuntimeConfig()
+const { getAuthHeaders } = useAuth()
 
 const form = ref({
   amount: '',
@@ -62,7 +64,9 @@ const form = ref({
 const submitExpense = async () => {
   try {
     await $fetch('/api/expenses', {
+      baseURL: config.public.apiUrl,
       method: 'POST',
+      headers: getAuthHeaders(),
       body: form.value
     })
     router.push('/')

@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from models.expense import Base, ExpenseDB, ExpenseSchema
+from models.user import UserDB
 from typing import List, Optional
 from loguru import logger
 
@@ -227,16 +228,17 @@ class DatabaseService:
         finally:
             session.close()
 
-    def get_monthly_stats(self, year: int, month: int) -> dict:
+    def get_monthly_stats(self, user_id: str, year: int, month: int) -> dict:
         """
-        Obtiene estadísticas para un mes específico
+        Obtiene estadísticas para un mes específico de un usuario
         """
         session = self.get_session()
         try:
             from sqlalchemy import func, extract, and_
 
-            # Filtros base
+            # Filtros base incluyendo user_id
             month_filter = and_(
+                ExpenseDB.user_id == user_id,
                 extract('year', ExpenseDB.date) == year,
                 extract('month', ExpenseDB.date) == month
             )
@@ -275,15 +277,16 @@ class DatabaseService:
         finally:
             session.close()
 
-    def get_category_stats(self, year: int, month: int) -> List[dict]:
+    def get_category_stats(self, user_id: str, year: int, month: int) -> List[dict]:
         """
-        Obtiene desglose de gastos por categoría para un mes
+        Obtiene desglose de gastos por categoría para un mes de un usuario
         """
         session = self.get_session()
         try:
             from sqlalchemy import func, extract, and_
 
             month_filter = and_(
+                ExpenseDB.user_id == user_id,
                 extract('year', ExpenseDB.date) == year,
                 extract('month', ExpenseDB.date) == month,
                 ExpenseDB.transaction_type == "expense"
@@ -308,39 +311,41 @@ class DatabaseService:
         finally:
             session.close()
 
-    def get_six_month_history(self) -> dict:
+    def get_six_month_history(self, user_id: str) -> dict:
         """
-        Obtiene historial de los últimos 6 meses para gráficos
+        Obtiene historial de los últimos 6 meses para gráficos de un usuario
         """
         session = self.get_session()
         try:
-            from sqlalchemy import func, extract
+            from sqlalchemy import func, extract, and_
             from datetime import datetime, timedelta
             from calendar import month_abbr
 
             today = datetime.now()
             six_months_ago = today - timedelta(days=180)
             
-            # Single query for expenses
+            # Single query for expenses filtered by user_id
             expense_query = (
                 session.query(
                     extract('year', ExpenseDB.date).label('year'),
                     extract('month', ExpenseDB.date).label('month'),
                     func.sum(ExpenseDB.amount).label('total')
                 )
+                .filter(ExpenseDB.user_id == user_id)
                 .filter(ExpenseDB.date >= six_months_ago)
                 .filter(ExpenseDB.transaction_type == "expense")
                 .group_by(extract('year', ExpenseDB.date), extract('month', ExpenseDB.date))
                 .all()
             )
             
-            # Single query for income
+            # Single query for income filtered by user_id
             income_query = (
                 session.query(
                     extract('year', ExpenseDB.date).label('year'),
                     extract('month', ExpenseDB.date).label('month'),
                     func.sum(ExpenseDB.amount).label('total')
                 )
+                .filter(ExpenseDB.user_id == user_id)
                 .filter(ExpenseDB.date >= six_months_ago)
                 .filter(ExpenseDB.transaction_type == "income")
                 .group_by(extract('year', ExpenseDB.date), extract('month', ExpenseDB.date))
@@ -375,3 +380,242 @@ class DatabaseService:
             return {"labels": [], "income": [], "expenses": []}
         finally:
             session.close()
+
+    # ==================== USER MANAGEMENT ====================
+
+    def create_user(self, username: str, hashed_password: str, email: str = None, telegram_id: str = None) -> UserDB:
+        """
+        Create a new user
+        """
+        session = self.get_session()
+        try:
+            db_user = UserDB(
+                username=username,
+                hashed_password=hashed_password,
+                email=email,
+                telegram_id=telegram_id
+            )
+            session.add(db_user)
+            session.commit()
+            session.refresh(db_user)
+            logger.info(f"Usuario creado: ID={db_user.id}, Username={username}")
+            return db_user
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error creando usuario: {e}")
+            raise
+        finally:
+            session.close()
+
+    def get_user_by_username(self, username: str) -> Optional[UserDB]:
+        """
+        Get user by username
+        """
+        session = self.get_session()
+        try:
+            user = session.query(UserDB).filter(UserDB.username == username).first()
+            return user
+        except Exception as e:
+            logger.error(f"Error obteniendo usuario por username: {e}")
+            return None
+        finally:
+            session.close()
+
+    def get_user_by_id(self, user_id: int) -> Optional[UserDB]:
+        """
+        Get user by ID
+        """
+        session = self.get_session()
+        try:
+            user = session.query(UserDB).filter(UserDB.id == user_id).first()
+            return user
+        except Exception as e:
+            logger.error(f"Error obteniendo usuario por ID: {e}")
+            return None
+        finally:
+            session.close()
+
+    def get_user_by_telegram_id(self, telegram_id: str) -> Optional[UserDB]:
+        """
+        Get user by Telegram ID
+        """
+        session = self.get_session()
+        try:
+            user = session.query(UserDB).filter(UserDB.telegram_id == telegram_id).first()
+            return user
+        except Exception as e:
+            logger.error(f"Error obteniendo usuario por telegram_id: {e}")
+            return None
+        finally:
+            session.close()
+
+    def update_user(self, user_id: int, **kwargs) -> Optional[UserDB]:
+        """
+        Update user fields
+        """
+        session = self.get_session()
+        try:
+            user = session.query(UserDB).filter(UserDB.id == user_id).first()
+            if user:
+                for key, value in kwargs.items():
+                    if hasattr(user, key) and value is not None:
+                        setattr(user, key, value)
+                session.commit()
+                session.refresh(user)
+                logger.info(f"Usuario actualizado: ID={user_id}")
+            return user
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error actualizando usuario: {e}")
+            return None
+        finally:
+            session.close()
+
+    def increment_interaction_count(self, telegram_id: str) -> int:
+        """
+        Increment interaction count for a telegram user (for free trial tracking)
+        Returns the new interaction count
+        """
+        session = self.get_session()
+        try:
+            user = session.query(UserDB).filter(UserDB.telegram_id == telegram_id).first()
+            if user:
+                user.interaction_count = (user.interaction_count or 0) + 1
+                session.commit()
+                return user.interaction_count
+            else:
+                # Create a temporary user entry for tracking
+                temp_user = UserDB(
+                    username=f"telegram_{telegram_id}",
+                    hashed_password="",  # No password for telegram-only users
+                    telegram_id=telegram_id,
+                    interaction_count=1
+                )
+                session.add(temp_user)
+                session.commit()
+                return 1
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error incrementando interaction_count: {e}")
+            return 0
+        finally:
+            session.close()
+
+    def get_interaction_count(self, telegram_id: str) -> int:
+        """
+        Get interaction count for a telegram user
+        """
+        session = self.get_session()
+        try:
+            user = session.query(UserDB).filter(UserDB.telegram_id == telegram_id).first()
+            return user.interaction_count if user else 0
+        except Exception as e:
+            logger.error(f"Error obteniendo interaction_count: {e}")
+            return 0
+        finally:
+            session.close()
+
+    # ==================== EMAIL VERIFICATION ====================
+
+    def get_user_by_email(self, email: str) -> Optional[UserDB]:
+        """
+        Get user by email address
+        """
+        session = self.get_session()
+        try:
+            user = session.query(UserDB).filter(UserDB.email == email).first()
+            return user
+        except Exception as e:
+            logger.error(f"Error obteniendo usuario por email: {e}")
+            return None
+        finally:
+            session.close()
+
+    def set_email_verification_token(self, user_id: int, token: str) -> bool:
+        """
+        Set email verification token for a user
+        
+        Args:
+            user_id: User ID
+            token: Verification token
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            from datetime import datetime
+            user = session.query(UserDB).filter(UserDB.id == user_id).first()
+            if user:
+                user.email_verification_token = token
+                user.email_verification_sent_at = datetime.utcnow()
+                session.commit()
+                logger.info(f"Verification token set for user ID={user_id}")
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error setting verification token: {e}")
+            return False
+        finally:
+            session.close()
+
+    def verify_user_email(self, user_id: int) -> bool:
+        """
+        Mark user's email as verified
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            user = session.query(UserDB).filter(UserDB.id == user_id).first()
+            if user:
+                user.email_verified = True
+                user.email_verification_token = None
+                user.email_verification_sent_at = None
+                session.commit()
+                logger.info(f"Email verified for user ID={user_id}")
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error verifying email: {e}")
+            return False
+        finally:
+            session.close()
+
+    def update_user_email(self, user_id: int, new_email: str) -> Optional[UserDB]:
+        """
+        Update user's email and reset verification status
+        
+        Args:
+            user_id: User ID
+            new_email: New email address
+            
+        Returns:
+            Updated user object if successful, None otherwise
+        """
+        session = self.get_session()
+        try:
+            user = session.query(UserDB).filter(UserDB.id == user_id).first()
+            if user:
+                user.email = new_email
+                user.email_verified = False
+                user.email_verification_token = None
+                user.email_verification_sent_at = None
+                session.commit()
+                session.refresh(user)
+                logger.info(f"Email updated for user ID={user_id}")
+                return user
+            return None
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error updating email: {e}")
+            return None
+        finally:
+            session.close()
+

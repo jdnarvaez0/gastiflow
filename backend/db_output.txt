@@ -1,0 +1,134 @@
+2025-12-29 12:41:01.433 | INFO     | services.database_service:__init__:18 - Base de datos inicializada
+Conectando a: postgresql://fintrack_user:hack0840@localhost:5432/fintrack_db
+
+================================================================================
+┌LTIMOS 10 GASTOS EN LA BASE DE DATOS:
+================================================================================
+
+ID: 13
+User ID: 765693782
+Descripci≤n: Almuerzo
+Monto: $12000.0 ARS
+Categorφa: Restaurante
+Tipo: expense
+Fecha: 2025-12-29 12:31:16.302069
+Creado: 2025-12-29 15:31:16.310127
+--------------------------------------------------------------------------------
+
+ID: 10
+User ID: 765693782
+Descripci≤n: Almuerzo
+Monto: $10000.0 ARS
+Categorφa: Restaurante
+Tipo: expense
+Fecha: 2025-12-29 12:11:58.407608
+Creado: 2025-12-29 15:11:58.531443
+--------------------------------------------------------------------------------
+
+ID: 7
+User ID: 765693782
+Descripci≤n: transporte
+Monto: $700.0 ARS
+Categorφa: Transporte
+Tipo: expense
+Fecha: 2025-12-29 11:47:55.217837
+Creado: 2025-12-29 14:47:55.235557
+--------------------------------------------------------------------------------
+
+ID: 11
+User ID: 3
+Descripci≤n: Final test
+Monto: $100.0 ARS
+Categorφa: Transporte
+Tipo: expense
+Fecha: 2025-12-29 00:00:00
+Creado: 2025-12-29 15:18:35.258938
+--------------------------------------------------------------------------------
+
+ID: 12
+User ID: 3
+Descripci≤n: Almuerzo
+Monto: $10000.0 ARS
+Categorφa: Comida
+Tipo: expense
+Fecha: 2025-12-29 00:00:00
+Creado: 2025-12-29 15:30:41.378062
+--------------------------------------------------------------------------------
+
+ID: 8
+User ID: 3
+Descripci≤n: Test gasto
+Monto: $100.0 ARS
+Categorφa: Comida
+Tipo: expense
+Fecha: 2025-12-29 00:00:00
+Creado: 2025-12-29 15:08:22.575778
+--------------------------------------------------------------------------------
+
+ID: 9
+User ID: 3
+Descripci≤n: Another test
+Monto: $200.0 ARS
+Categorφa: Comida
+Tipo: expense
+Fecha: 2025-12-29 00:00:00
+Creado: 2025-12-29 15:09:47.851810
+--------------------------------------------------------------------------------
+
+ID: 6
+User ID: 765693782
+Descripci≤n: Compra en supermercado
+Monto: $11000.0 ARS
+Categorφa: Supermercado
+Tipo: expense
+Fecha: 2025-12-19 22:58:16.733840
+Creado: 2025-12-20 01:58:16.738560
+--------------------------------------------------------------------------------
+
+ID: 5
+User ID: web_user
+Descripci≤n: suelfo kyndryl
+Monto: $2200000.0 ARS
+Categorφa: Salario
+Tipo: income
+Fecha: 2025-11-29 00:00:00
+Creado: 2025-11-29 21:36:38.555866
+--------------------------------------------------------------------------------
+
+ID: 4
+User ID: 765693782
+Descripci≤n: docena de facturas
+Monto: $10000.0 ARS
+Categorφa: Otros
+Tipo: expense
+Fecha: 2025-11-25 22:46:53.253556
+Creado: 2025-11-26 01:46:53.316175
+--------------------------------------------------------------------------------
+
+================================================================================
+USUARIOS EN LA BASE DE DATOS:
+================================================================================
+
+ID: 1
+Username: juanprueba
+Email: cybera0840@gmail.com
+Telegram ID: None
+Has Gemini Key: False
+Interaction Count: 0
+--------------------------------------------------------------------------------
+
+ID: 3
+Username: testuser
+Email: test@example.com
+Telegram ID: None
+Has Gemini Key: False
+Interaction Count: 0
+--------------------------------------------------------------------------------
+
+ID: 2
+Username: telegram_765693782
+Email: None
+Telegram ID: 765693782
+Has Gemini Key: False
+Interaction Count: 4
+--------------------------------------------------------------------------------

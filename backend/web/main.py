@@ -2,14 +2,22 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, Request, Form, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from dotenv import load_dotenv
 
 from services.database_service import DatabaseService
+from services.auth_service import (
+    verify_password, get_password_hash, create_access_token, decode_token,
+    is_trial_exceeded, get_remaining_trial, FREE_TRIAL_INTERACTIONS,
+    encode_verification_token, decode_verification_token
+)
+from services.email_service import EmailService
 from models.expense import ExpenseSchema, Category, TransactionType
+from models.user import UserCreate, UserLogin, UserUpdate, UserResponse, Token
 
 # Load environment variables
 load_dotenv()
@@ -20,8 +28,16 @@ app = FastAPI(title="Gastiflow Web")
 # Mount static files
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
+# Create uploads directory for profile pictures
+UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "uploads", "profile_pictures")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "uploads")), name="uploads")
+
 # Templates
 templates = Jinja2Templates(directory="web/templates")
+
+# OAuth2 scheme
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login", auto_error=False)
 
 # Database Service Dependency
 def get_db_service():
@@ -36,6 +52,63 @@ def get_db_service():
         db_url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
     
     return DatabaseService(db_url)
+
+# Auth dependency - gets current user from token
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: DatabaseService = Depends(get_db_service)
+):
+    if not token:
+        return None
+    
+    payload = decode_token(token)
+    if not payload:
+        return None
+    
+    username = payload.get("sub")
+    if not username:
+        return None
+    
+    user = db.get_user_by_username(username)
+    return user
+
+# Auth dependency - requires authenticated user
+async def require_auth(
+    token: str = Depends(oauth2_scheme),
+    db: DatabaseService = Depends(get_db_service)
+):
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    payload = decode_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user = db.get_user_by_username(username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return user
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, db: DatabaseService = Depends(get_db_service)):
@@ -113,25 +186,263 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==================== AUTH ENDPOINTS ====================
+
+@app.post("/api/register", response_model=UserResponse)
+def register(user_data: UserCreate, db: DatabaseService = Depends(get_db_service)):
+    """Register a new user"""
+    # Check if username already exists
+    existing_user = db.get_user_by_username(user_data.username)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered"
+        )
+    
+    # Check if email already exists
+    if user_data.email:
+        existing_email = db.get_user_by_email(user_data.email)
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+    
+    # Hash password and create user
+    hashed_password = get_password_hash(user_data.password)
+    user = db.create_user(
+        username=user_data.username,
+        hashed_password=hashed_password,
+        email=user_data.email,
+        telegram_id=user_data.telegram_id
+    )
+    
+    # Send verification email if email provided
+    if user.email:
+        token = encode_verification_token(user.email)
+        db.set_email_verification_token(user.id, token)
+        EmailService.send_verification_email(user.email, token, user.username)
+    
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        telegram_id=user.telegram_id,
+        has_gemini_key=bool(user.gemini_api_key),
+        interaction_count=user.interaction_count or 0,
+        is_active=user.is_active,
+        email_verified=user.email_verified,
+        full_name=user.full_name,
+        profile_picture_url=user.profile_picture_url
+    )
+
+@app.post("/api/login", response_model=Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: DatabaseService = Depends(get_db_service)):
+    """Login and get access token"""
+    user = db.get_user_by_username(form_data.username)
+    
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
+    return Token(access_token=access_token, token_type="bearer")
+
+@app.get("/api/me", response_model=UserResponse)
+def get_me(user = Depends(require_auth)):
+    """Get current user info"""
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        telegram_id=user.telegram_id,
+        has_gemini_key=bool(user.gemini_api_key),
+        interaction_count=user.interaction_count or 0,
+        is_active=user.is_active,
+        email_verified=user.email_verified,
+        full_name=user.full_name,
+        profile_picture_url=user.profile_picture_url
+    )
+
+
+@app.put("/api/settings", response_model=UserResponse)
+def update_settings(
+    settings: UserUpdate,
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """Update user settings (email, gemini_api_key, telegram_id)"""
+    # Handle email change separately if provided
+    if settings.email and settings.email != user.email:
+        # Check if new email already exists
+        existing_email = db.get_user_by_email(settings.email)
+        if existing_email and existing_email.id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already in use"
+            )
+        
+        # Send notification to old email
+        if user.email:
+            EmailService.send_email_change_notification(user.email, user.username)
+        
+        # Update email and send verification
+        updated_user = db.update_user_email(user.id, settings.email)
+        if updated_user:
+            token = encode_verification_token(settings.email)
+            db.set_email_verification_token(user.id, token)
+            EmailService.send_verification_email(settings.email, token, user.username)
+    else:
+        # Check if telegram_id is being updated and if it's already in use
+        if settings.telegram_id and settings.telegram_id != user.telegram_id:
+            existing_telegram = db.get_user_by_telegram_id(settings.telegram_id)
+            if existing_telegram and existing_telegram.id != user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Telegram ID already linked to another account ({existing_telegram.username})"
+                )
+        
+        # Update other settings
+        updated_user = db.update_user(
+            user_id=user.id,
+            gemini_api_key=settings.gemini_api_key,
+            telegram_id=settings.telegram_id,
+            full_name=settings.full_name
+        )
+    
+    if not updated_user:
+        raise HTTPException(status_code=500, detail="Failed to update settings")
+    
+    return UserResponse(
+        id=updated_user.id,
+        username=updated_user.username,
+        email=updated_user.email,
+        telegram_id=updated_user.telegram_id,
+        has_gemini_key=bool(updated_user.gemini_api_key),
+        interaction_count=updated_user.interaction_count or 0,
+        is_active=updated_user.is_active,
+        email_verified=updated_user.email_verified,
+        full_name=updated_user.full_name,
+        profile_picture_url=updated_user.profile_picture_url
+    )
+
+
+@app.get("/api/verify-email")
+def verify_email(token: str, db: DatabaseService = Depends(get_db_service)):
+    """
+    Verify email address with token
+    
+    Query params:
+        token: Verification token from email
+    """
+    # Decode token to get email
+    email = decode_verification_token(token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token"
+        )
+    
+    # Get user by email
+    user = db.get_user_by_email(email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Check if already verified
+    if user.email_verified:
+        return {"message": "Email already verified", "already_verified": True}
+    
+    # Verify email
+    success = db.verify_user_email(user.id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to verify email"
+        )
+    
+    return {"message": "Email verified successfully", "already_verified": False}
+
+@app.post("/api/resend-verification")
+def resend_verification(user = Depends(require_auth), db: DatabaseService = Depends(get_db_service)):
+    """
+    Resend verification email to current user
+    """
+    if not user.email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No email associated with this account"
+        )
+    
+    if user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already verified"
+        )
+    
+    # Generate new token and send email
+    token = encode_verification_token(user.email)
+    db.set_email_verification_token(user.id, token)
+    success = EmailService.send_verification_email(user.email, token, user.username)
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification email"
+        )
+    
+    return {"message": "Verification email sent"}
+
+@app.get("/api/email-status")
+def get_email_status(user = Depends(require_auth)):
+    """
+    Get email verification status for current user
+    """
+    return {
+        "email": user.email,
+        "email_verified": user.email_verified,
+        "has_email": bool(user.email)
+    }
+
+# ==================== PROTECTED API ENDPOINTS ====================
+
 @app.get("/api/dashboard")
-def api_dashboard(db: DatabaseService = Depends(get_db_service)):
+def api_dashboard(
+    user = Depends(get_current_user),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """Get dashboard data - works for both authenticated and unauthenticated users"""
     # Get current date
     now = datetime.now()
     current_year = now.year
     current_month = now.month
 
-    # Fetch data
-    monthly_stats = db.get_monthly_stats(current_year, current_month)
-    category_stats = db.get_category_stats(current_year, current_month)
-    history_stats = db.get_six_month_history()
-    recent_expenses = db.get_all_expenses(limit=5)
+    # If user is authenticated, get their data only
+    if user:
+        user_id = str(user.id)
+        monthly_stats = db.get_monthly_stats(user_id, current_year, current_month)
+        category_stats = db.get_category_stats(user_id, current_year, current_month)
+        history_stats = db.get_six_month_history(user_id)
+        recent_expenses = db.get_user_expenses(user_id, limit=5)
+    else:
+        # For unauthenticated users, return empty data
+        monthly_stats = {"income": 0, "expenses": 0, "balance": 0, "savings": 0}
+        category_stats = []
+        history_stats = {"labels": [], "income": [], "expenses": []}
+        recent_expenses = []
     
     return {
         "stats": monthly_stats,
         "categories": category_stats,
         "history": history_stats,
         "expenses": recent_expenses,
-        "current_date": now
+        "current_date": now,
+        "is_authenticated": user is not None
     }
 
 class ExpenseCreate(BaseModel):
@@ -142,8 +453,13 @@ class ExpenseCreate(BaseModel):
     date: str
 
 @app.post("/api/expenses")
-def api_add_expense(expense: ExpenseCreate, db: DatabaseService = Depends(get_db_service)):
-    user_id = "web_user"
+def api_add_expense(
+    expense: ExpenseCreate,
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """Add expense - requires authentication"""
+    user_id = str(user.id)
     
     try:
         # Parse date
@@ -166,3 +482,126 @@ def api_add_expense(expense: ExpenseCreate, db: DatabaseService = Depends(get_db
         raise HTTPException(status_code=400, detail=f"Invalid data: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+
+# ==================== PROFILE PICTURE ENDPOINTS ====================
+
+import uuid
+import shutil
+
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+@app.post("/api/profile-picture", response_model=UserResponse)
+async def upload_profile_picture(
+    file: UploadFile = File(...),
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """Upload a profile picture for the current user"""
+    
+    # Validate file extension
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+    
+    # Read file content and check size
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB"
+        )
+    
+    # Delete old profile picture if exists
+    if user.profile_picture_url:
+        old_filename = os.path.basename(user.profile_picture_url)
+        old_filepath = os.path.join(UPLOADS_DIR, old_filename)
+        if os.path.exists(old_filepath):
+            os.remove(old_filepath)
+    
+    # Generate unique filename
+    unique_filename = f"{user.id}_{uuid.uuid4().hex}{file_ext}"
+    filepath = os.path.join(UPLOADS_DIR, unique_filename)
+    
+    # Save file
+    with open(filepath, "wb") as f:
+        f.write(content)
+    
+    # Update user's profile picture URL
+    profile_picture_url = f"/uploads/profile_pictures/{unique_filename}"
+    updated_user = db.update_user(user_id=user.id, profile_picture_url=profile_picture_url)
+    
+    if not updated_user:
+        # Clean up file if update failed
+        os.remove(filepath)
+        raise HTTPException(status_code=500, detail="Failed to update profile picture")
+    
+    return UserResponse(
+        id=updated_user.id,
+        username=updated_user.username,
+        email=updated_user.email,
+        telegram_id=updated_user.telegram_id,
+        has_gemini_key=bool(updated_user.gemini_api_key),
+        interaction_count=updated_user.interaction_count or 0,
+        is_active=updated_user.is_active,
+        email_verified=updated_user.email_verified,
+        full_name=updated_user.full_name,
+        profile_picture_url=updated_user.profile_picture_url
+    )
+
+
+@app.delete("/api/profile-picture", response_model=UserResponse)
+def delete_profile_picture(
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """Delete the current user's profile picture"""
+    
+    if not user.profile_picture_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No profile picture to delete"
+        )
+    
+    # Delete the file
+    filename = os.path.basename(user.profile_picture_url)
+    filepath = os.path.join(UPLOADS_DIR, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    
+    # Update user to remove profile picture URL
+    updated_user = db.update_user(user_id=user.id, profile_picture_url=None)
+    
+    # Handle None case - need to explicitly set to None
+    from sqlalchemy import update
+    session = db.get_session()
+    try:
+        from models.user import UserDB
+        session.execute(
+            update(UserDB).where(UserDB.id == user.id).values(profile_picture_url=None)
+        )
+        session.commit()
+        updated_user = db.get_user_by_id(user.id)
+    finally:
+        session.close()
+    
+    if not updated_user:
+        raise HTTPException(status_code=500, detail="Failed to delete profile picture")
+    
+    return UserResponse(
+        id=updated_user.id,
+        username=updated_user.username,
+        email=updated_user.email,
+        telegram_id=updated_user.telegram_id,
+        has_gemini_key=bool(updated_user.gemini_api_key),
+        interaction_count=updated_user.interaction_count or 0,
+        is_active=updated_user.is_active,
+        email_verified=updated_user.email_verified,
+        full_name=updated_user.full_name,
+        profile_picture_url=updated_user.profile_picture_url
+    )

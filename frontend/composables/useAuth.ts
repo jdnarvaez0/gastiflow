@@ -1,0 +1,326 @@
+/**
+ * Authentication composable for managing user auth state
+ */
+
+export interface User {
+    id: number
+    username: string
+    email: string | null
+    telegram_id: string | null
+    has_gemini_key: boolean
+    interaction_count: number
+    is_active: boolean
+    email_verified: boolean
+    full_name: string | null
+    profile_picture_url: string | null
+}
+
+export interface LoginCredentials {
+    username: string
+    password: string
+}
+
+export interface RegisterData {
+    username: string
+    password: string
+    email?: string
+    telegram_id?: string
+}
+
+export interface UserSettings {
+    email?: string | null
+    gemini_api_key?: string | null
+    telegram_id?: string | null
+    full_name?: string | null
+}
+
+export const useAuth = () => {
+    const config = useRuntimeConfig()
+    const apiUrl = config.public.apiUrl
+
+    // State
+    const user = useState<User | null>('auth_user', () => null)
+    const token = useState<string | null>('auth_token', () => {
+        if (process.client) {
+            return localStorage.getItem('gastiflow_token')
+        }
+        return null
+    })
+    const isAuthenticated = computed(() => !!token.value && !!user.value)
+    const isLoading = useState<boolean>('auth_loading', () => false)
+    const error = useState<string | null>('auth_error', () => null)
+
+    // Initialize - check if we have a token and fetch user
+    const init = async () => {
+        if (process.client && token.value) {
+            await fetchUser()
+        }
+    }
+
+    // Login
+    const login = async (credentials: LoginCredentials) => {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const formData = new URLSearchParams()
+            formData.append('username', credentials.username)
+            formData.append('password', credentials.password)
+
+            const response = await $fetch<{ access_token: string; token_type: string }>('/api/login', {
+                baseURL: apiUrl,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            })
+
+            token.value = response.access_token
+            if (process.client) {
+                localStorage.setItem('gastiflow_token', response.access_token)
+            }
+
+            await fetchUser()
+            return true
+        } catch (e: any) {
+            error.value = e?.data?.detail || 'Error al iniciar sesión'
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    // Register
+    const register = async (data: RegisterData) => {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            await $fetch<User>('/api/register', {
+                baseURL: apiUrl,
+                method: 'POST',
+                body: data
+            })
+
+            // Auto-login after registration
+            return await login({ username: data.username, password: data.password })
+        } catch (e: any) {
+            error.value = e?.data?.detail || 'Error al registrarse'
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    // Fetch current user
+    const fetchUser = async () => {
+        if (!token.value) return
+
+        try {
+            const userData = await $fetch<User>('/api/me', {
+                baseURL: apiUrl,
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                }
+            })
+            user.value = userData
+        } catch (e) {
+            // Token invalid - logout
+            logout()
+        }
+    }
+
+    // Update settings
+    const updateSettings = async (settings: UserSettings) => {
+        if (!token.value) return false
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const updatedUser = await $fetch<User>('/api/settings', {
+                baseURL: apiUrl,
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                },
+                body: settings
+            })
+            user.value = updatedUser
+            return true
+        } catch (e: any) {
+            error.value = e?.data?.detail || 'Error al actualizar configuración'
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    // Logout
+    const logout = () => {
+        token.value = null
+        user.value = null
+        if (process.client) {
+            localStorage.removeItem('gastiflow_token')
+        }
+    }
+
+    // Get auth headers for API calls
+    const getAuthHeaders = () => {
+        if (!token.value) return {}
+        return {
+            'Authorization': `Bearer ${token.value}`
+        }
+    }
+
+    // Verify email with token
+    const verifyEmail = async (verificationToken: string) => {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const response = await $fetch<{ message: string; already_verified: boolean }>('/api/verify-email', {
+                baseURL: apiUrl,
+                params: { token: verificationToken }
+            })
+
+            // Refresh user data if logged in
+            if (token.value) {
+                await fetchUser()
+            }
+
+            return { success: true, alreadyVerified: response.already_verified }
+        } catch (e: any) {
+            error.value = e?.data?.detail || 'Error al verificar el email'
+            return { success: false, alreadyVerified: false }
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+
+    // Resend verification email
+    const resendVerification = async () => {
+        if (!token.value) return false
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            await $fetch('/api/resend-verification', {
+                baseURL: apiUrl,
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                }
+            })
+            return true
+        } catch (e: any) {
+            error.value = e?.data?.detail || 'Error al reenviar email de verificación'
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    // Change email (will require re-verification)
+    const changeEmail = async (newEmail: string) => {
+        if (!token.value) return false
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const updatedUser = await $fetch<User>('/api/settings', {
+                baseURL: apiUrl,
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                },
+                body: { email: newEmail }
+            })
+            user.value = updatedUser
+            return true
+        } catch (e: any) {
+            error.value = e?.data?.detail || 'Error al cambiar email'
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    // Upload profile picture
+    const uploadProfilePicture = async (file: File) => {
+        if (!token.value) return false
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+
+            const updatedUser = await $fetch<User>('/api/profile-picture', {
+                baseURL: apiUrl,
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                },
+                body: formData
+            })
+            user.value = updatedUser
+            return true
+        } catch (e: any) {
+            error.value = e?.data?.detail || 'Error al subir la foto de perfil'
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    // Delete profile picture
+    const deleteProfilePicture = async () => {
+        if (!token.value) return false
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const updatedUser = await $fetch<User>('/api/profile-picture', {
+                baseURL: apiUrl,
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                }
+            })
+            user.value = updatedUser
+            return true
+        } catch (e: any) {
+            error.value = e?.data?.detail || 'Error al eliminar la foto de perfil'
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    return {
+        user,
+        token,
+        isAuthenticated,
+        isLoading,
+        error,
+        init,
+        login,
+        register,
+        logout,
+        fetchUser,
+        updateSettings,
+        getAuthHeaders,
+        verifyEmail,
+        resendVerification,
+        changeEmail,
+        uploadProfilePicture,
+        deleteProfilePicture
+    }
+}

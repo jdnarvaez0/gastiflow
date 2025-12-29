@@ -168,9 +168,45 @@
 import AddTransactionModal from '~/components/AddTransactionModal.vue'
 
 const config = useRuntimeConfig()
-const { data, pending, error, refresh } = await useFetch('/api/dashboard', {
-    baseURL: config.public.apiUrl
-})
+const { getAuthHeaders, isAuthenticated, token, init } = useAuth()
+
+// Initialize auth on client side
+const authReady = ref(false)
+const data = ref(null)
+const pending = ref(true)
+const error = ref(null)
+
+// Polling interval ref
+const pollingInterval = ref(null)
+const POLLING_INTERVAL_MS = 10000 // 10 seconds
+
+// Fetch dashboard data
+const fetchDashboard = async () => {
+    if (!token.value) {
+        data.value = { stats: { balance: 0, income: 0, expenses: 0, savings: 0 }, categories: [], history: { labels: [], income: [], expenses: [] }, expenses: [] }
+        pending.value = false
+        return
+    }
+
+    try {
+        const response = await $fetch('/api/dashboard', {
+            baseURL: config.public.apiUrl,
+            headers: getAuthHeaders()
+        })
+        data.value = response
+        error.value = null
+    } catch (e) {
+        error.value = e
+        console.error('Error fetching dashboard:', e)
+    } finally {
+        pending.value = false
+    }
+}
+
+// Refresh function for manual refresh and after adding transactions
+const refresh = async () => {
+    await fetchDashboard()
+}
 
 const showAddModal = ref(false)
 
@@ -191,7 +227,36 @@ const toggleTheme = () => {
     }
 }
 
-onMounted(() => {
+// Start polling for updates
+const startPolling = () => {
+    if (pollingInterval.value) return
+    pollingInterval.value = setInterval(async () => {
+        if (token.value) {
+            await fetchDashboard()
+            // Re-render chart if data changed
+            if (data.value?.history) {
+                renderChart(data.value.history)
+            }
+        }
+    }, POLLING_INTERVAL_MS)
+}
+
+// Stop polling
+const stopPolling = () => {
+    if (pollingInterval.value) {
+        clearInterval(pollingInterval.value)
+        pollingInterval.value = null
+    }
+}
+
+onMounted(async () => {
+    // Initialize auth from localStorage
+    await init()
+    authReady.value = true
+    
+    // Fetch data after auth is ready
+    await fetchDashboard()
+    
     // Load saved theme
     const savedTheme = localStorage.getItem('theme')
     if (savedTheme === 'dark') {
@@ -202,6 +267,14 @@ onMounted(() => {
     if (data.value && data.value.history) {
         renderChart(data.value.history)
     }
+    
+    // Start auto-refresh polling
+    startPolling()
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+    stopPolling()
 })
 
 const formatNumber = (num) => {
@@ -237,11 +310,6 @@ const getCategoryIcon = (category, type) => {
     return iconMap[category] || 'fa-bag-shopping';
 }
 
-onMounted(() => {
-    if (data.value && data.value.history) {
-        renderChart(data.value.history)
-    }
-})
 
 watch(data, (newData) => {
     if (newData && newData.history) {

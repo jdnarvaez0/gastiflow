@@ -64,7 +64,7 @@ def main():
         logger.info("✓ Sheets Service inicializado")
 
         # Crear handlers
-        handlers = BotHandlers(ai_processor, db_service, sheets_service)
+        handlers = BotHandlers(ai_processor, db_service, sheets_service, GEMINI_API_KEY)
 
         # Crear aplicación del bot
         application = Application.builder().token(TELEGRAM_TOKEN).build()
