@@ -23,6 +23,13 @@ CREATE TABLE IF NOT EXISTS users (
     gemini_api_key VARCHAR(255),
     interaction_count INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
+    -- Email verification fields
+    email_verified BOOLEAN DEFAULT FALSE,
+    email_verification_token VARCHAR(255),
+    email_verification_sent_at TIMESTAMP WITHOUT TIME ZONE,
+    -- Profile fields
+    full_name VARCHAR(200),
+    profile_picture_url VARCHAR(500),
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc'),
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc')
 );
