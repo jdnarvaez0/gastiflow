@@ -47,12 +47,18 @@
             
             <div class="auth-footer">
                 <p>¿No tienes cuenta? <NuxtLink to="/register">Regístrate aquí</NuxtLink></p>
+                <p style="margin-top: 0.75rem;"><NuxtLink to="/"><i class="fas fa-arrow-left"></i> Volver a la página principal</NuxtLink></p>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+// Use the public layout (no sidebar)
+definePageMeta({
+    layout: 'public'
+})
+
 const router = useRouter()
 const { login, isLoading, error, isAuthenticated } = useAuth()
 
@@ -62,14 +68,14 @@ const password = ref('')
 // Redirect if already authenticated
 onMounted(() => {
     if (isAuthenticated.value) {
-        router.push('/')
+        router.push('/dashboard')
     }
 })
 
 const handleLogin = async () => {
     const success = await login({ username: username.value, password: password.value })
     if (success) {
-        router.push('/')
+        router.push('/dashboard')
     }
 }
 </script>

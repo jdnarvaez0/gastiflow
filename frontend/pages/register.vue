@@ -125,12 +125,18 @@
             
             <div class="auth-footer">
                 <p>¿Ya tienes cuenta? <NuxtLink to="/login">Inicia sesión</NuxtLink></p>
+                <p style="margin-top: 0.75rem;"><NuxtLink to="/"><i class="fas fa-arrow-left"></i> Volver a la página principal</NuxtLink></p>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+// Use the public layout (no sidebar)
+definePageMeta({
+    layout: 'public'
+})
+
 const router = useRouter()
 const { register, resendVerification, isLoading, error, isAuthenticated } = useAuth()
 

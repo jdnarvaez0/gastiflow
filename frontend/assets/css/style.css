@@ -10,6 +10,15 @@
     --danger-color: #FF754C;
     --success: #4CE1B6;
     --danger: #FF754C;
+    
+    /* Landing page variables */
+    --bg-primary: #0f0f1a;
+    --bg-secondary: #1a1a2e;
+    --bg-card: #1f1f35;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0b8;
+    --accent-primary: #9333ea;
+    --accent-secondary: #a855f7;
 }
 
 [data-theme="dark"] {
