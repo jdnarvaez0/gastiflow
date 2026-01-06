@@ -68,4 +68,6 @@ passlib[bcrypt]==1.7.4
 python-jose[cryptography]==3.3.0
 bcrypt==4.0.1
 email-validator==2.1.0
+slowapi==0.1.9
+sentry-sdk[fastapi]==1.40.0
 

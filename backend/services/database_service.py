@@ -1,9 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from models.expense import Base, ExpenseDB, ExpenseSchema
-from models.user import UserDB
+from models.user import UserDB, RefreshTokenDB
 from typing import List, Optional
 from loguru import logger
+import hashlib
+from datetime import datetime, timedelta
 
 
 class DatabaseService:
@@ -616,6 +618,147 @@ class DatabaseService:
             session.rollback()
             logger.error(f"Error updating email: {e}")
             return None
+        finally:
+            session.close()
+
+
+
+    # ==================== REFRESH TOKEN MANAGEMENT ====================
+
+    def create_refresh_token(self, user_id: int, token: str, expires_at: datetime) -> Optional[RefreshTokenDB]:
+        """
+        Store a refresh token in the database
+        
+        Args:
+            user_id: User ID
+            token: Refresh token (will be hashed)
+            expires_at: Token expiration datetime
+            
+        Returns:
+            RefreshTokenDB object if successful, None otherwise
+        """
+        session = self.get_session()
+        try:
+            # Hash the token before storing
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            
+            db_token = RefreshTokenDB(
+                user_id=user_id,
+                token_hash=token_hash,
+                expires_at=expires_at
+            )
+            session.add(db_token)
+            session.commit()
+            session.refresh(db_token)
+            logger.info(f"Refresh token created for user ID={user_id}")
+            return db_token
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error creating refresh token: {e}")
+            return None
+        finally:
+            session.close()
+
+    def get_refresh_token(self, token: str) -> Optional[RefreshTokenDB]:
+        """
+        Get refresh token by token value
+        
+        Args:
+            token: Refresh token to look up
+            
+        Returns:
+            RefreshTokenDB object if found and valid, None otherwise
+        """
+        session = self.get_session()
+        try:
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            db_token = session.query(RefreshTokenDB).filter(
+                RefreshTokenDB.token_hash == token_hash,
+                RefreshTokenDB.revoked == False,
+                RefreshTokenDB.expires_at > datetime.utcnow()
+            ).first()
+            return db_token
+        except Exception as e:
+            logger.error(f"Error getting refresh token: {e}")
+            return None
+        finally:
+            session.close()
+
+    def revoke_refresh_token(self, token: str) -> bool:
+        """
+        Revoke a refresh token
+        
+        Args:
+            token: Refresh token to revoke
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            db_token = session.query(RefreshTokenDB).filter(
+                RefreshTokenDB.token_hash == token_hash
+            ).first()
+            
+            if db_token:
+                db_token.revoked = True
+                session.commit()
+                logger.info(f"Refresh token revoked for user ID={db_token.user_id}")
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error revoking refresh token: {e}")
+            return False
+        finally:
+            session.close()
+
+    def revoke_all_user_tokens(self, user_id: int) -> bool:
+        """
+        Revoke all refresh tokens for a user (logout from all devices)
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            session.query(RefreshTokenDB).filter(
+                RefreshTokenDB.user_id == user_id,
+                RefreshTokenDB.revoked == False
+            ).update({"revoked": True})
+            session.commit()
+            logger.info(f"All refresh tokens revoked for user ID={user_id}")
+            return True
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error revoking all tokens: {e}")
+            return False
+        finally:
+            session.close()
+
+    def cleanup_expired_tokens(self) -> int:
+        """
+        Delete expired refresh tokens from database
+        
+        Returns:
+            Number of tokens deleted
+        """
+        session = self.get_session()
+        try:
+            result = session.query(RefreshTokenDB).filter(
+                RefreshTokenDB.expires_at < datetime.utcnow()
+            ).delete()
+            session.commit()
+            logger.info(f"Cleaned up {result} expired refresh tokens")
+            return result
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error cleaning up expired tokens: {e}")
+            return 0
         finally:
             session.close()
 

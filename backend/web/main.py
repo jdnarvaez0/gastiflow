@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, status, UploadFile, File
@@ -8,22 +8,35 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from services.database_service import DatabaseService
 from services.auth_service import (
-    verify_password, get_password_hash, create_access_token, decode_token,
-    is_trial_exceeded, get_remaining_trial, FREE_TRIAL_INTERACTIONS,
-    encode_verification_token, decode_verification_token
+    verify_password, get_password_hash, create_access_token, create_refresh_token,
+    decode_token, is_trial_exceeded, get_remaining_trial, FREE_TRIAL_INTERACTIONS,
+    encode_verification_token, decode_verification_token, REFRESH_TOKEN_EXPIRE_DAYS
 )
 from services.email_service import EmailService
+from services.security_service import (
+    get_client_ip, get_user_agent, log_login_attempt, log_registration,
+    log_token_refresh, log_logout, log_email_change, log_unauthorized_access,
+    log_rate_limit_exceeded
+)
 from models.expense import ExpenseSchema, Category, TransactionType
-from models.user import UserCreate, UserLogin, UserUpdate, UserResponse, Token
+from models.user import UserCreate, UserLogin, UserUpdate, UserResponse, Token, RefreshTokenRequest, RefreshTokenResponse
 
 # Load environment variables
 load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(title="Gastiflow Web")
+
+# Configure rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
@@ -175,22 +188,76 @@ def add_expense(
 # --- API Endpoints for Nuxt Frontend ---
 
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
 
-# Add CORS middleware to allow requests from the Nuxt frontend (usually running on port 3000)
+# Get environment configuration
+environment = os.getenv("ENVIRONMENT", "development")
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+# Configure allowed origins
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+# Add production frontend
+if "gastiflow.vercel.app" not in allowed_origins:
+    allowed_origins.append("https://gastiflow.vercel.app")
+
+# Add configured frontend URL if different
+if frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
+
+# Only add ngrok in development
+if environment == "development":
+    ngrok_url = os.getenv("NGROK_URL")
+    if ngrok_url and ngrok_url not in allowed_origins:
+        allowed_origins.append(ngrok_url)
+
+# Add CORS middleware with strict configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For development, allow all. In production, specify the frontend URL.
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+# Add HTTPS redirect in production
+if environment == "production":
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+# Add trusted host middleware in production
+if environment == "production":
+    allowed_hosts_str = os.getenv("ALLOWED_HOSTS", "")
+    if allowed_hosts_str:
+        allowed_hosts = [host.strip() for host in allowed_hosts_str.split(",")]
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+
+
+# Add security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    if environment == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 # ==================== AUTH ENDPOINTS ====================
 
 @app.post("/api/register", response_model=UserResponse)
-def register(user_data: UserCreate, db: DatabaseService = Depends(get_db_service)):
+@limiter.limit("3/hour")
+def register(request: Request, user_data: UserCreate, db: DatabaseService = Depends(get_db_service)):
     """Register a new user"""
+    # Get client info for logging
+    client_ip = get_client_ip(request)
+    user_agent = get_user_agent(request)
+    
     # Check if username already exists
     existing_user = db.get_user_by_username(user_data.username)
     if existing_user:
@@ -217,6 +284,9 @@ def register(user_data: UserCreate, db: DatabaseService = Depends(get_db_service
         telegram_id=user_data.telegram_id
     )
     
+    # Log registration
+    log_registration(user.username, user.email, client_ip, user_agent)
+    
     # Send verification email if email provided
     if user.email:
         token = encode_verification_token(user.email)
@@ -236,20 +306,43 @@ def register(user_data: UserCreate, db: DatabaseService = Depends(get_db_service
         profile_picture_url=user.profile_picture_url
     )
 
-@app.post("/api/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: DatabaseService = Depends(get_db_service)):
-    """Login and get access token"""
+@app.post("/api/login", response_model=RefreshTokenResponse)
+@limiter.limit("5/minute")
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: DatabaseService = Depends(get_db_service)):
+    """Login and get access token + refresh token"""
+    # Get client info for logging
+    client_ip = get_client_ip(request)
+    user_agent = get_user_agent(request)
+    
     user = db.get_user_by_username(form_data.username)
     
     if not user or not verify_password(form_data.password, user.hashed_password):
+        # Log failed attempt
+        log_login_attempt(form_data.username, False, client_ip, user_agent)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    # Log successful login
+    log_login_attempt(user.username, True, client_ip, user_agent)
+    
+    # Create access token (1 hour)
     access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
-    return Token(access_token=access_token, token_type="bearer")
+    
+    # Create refresh token (7 days)
+    refresh_token = create_refresh_token(data={"sub": user.username, "user_id": user.id})
+    
+    # Store refresh token in database
+    expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    db.create_refresh_token(user.id, refresh_token, expires_at)
+    
+    return RefreshTokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer"
+    )
 
 @app.get("/api/me", response_model=UserResponse)
 def get_me(user = Depends(require_auth)):
@@ -268,13 +361,95 @@ def get_me(user = Depends(require_auth)):
     )
 
 
+@app.post("/api/refresh", response_model=RefreshTokenResponse)
+@limiter.limit("10/minute")
+def refresh_token(request: Request, token_request: RefreshTokenRequest, db: DatabaseService = Depends(get_db_service)):
+    """Refresh access token using refresh token"""
+    # Get client info for logging
+    client_ip = get_client_ip(request)
+    user_agent = get_user_agent(request)
+    
+    # Decode refresh token
+    payload = decode_token(token_request.refresh_token, token_type="refresh")
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Verify refresh token exists in database and is not revoked
+    db_token = db.get_refresh_token(token_request.refresh_token)
+    if not db_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found or revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Get user
+    username = payload.get("sub")
+    user = db.get_user_by_username(username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Log token refresh
+    log_token_refresh(user.username, client_ip, user_agent)
+    
+    # Revoke old refresh token
+    db.revoke_refresh_token(token_request.refresh_token)
+    
+    # Create new access token
+    new_access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
+    
+    # Create new refresh token
+    new_refresh_token = create_refresh_token(data={"sub": user.username, "user_id": user.id})
+    
+    # Store new refresh token
+    expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    db.create_refresh_token(user.id, new_refresh_token, expires_at)
+    
+    return RefreshTokenResponse(
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
+        token_type="bearer"
+    )
+
+
+@app.post("/api/logout")
+@limiter.limit("10/minute")
+def logout(request: Request, user = Depends(require_auth), db: DatabaseService = Depends(get_db_service)):
+    """Logout user and revoke all refresh tokens"""
+    # Get client info for logging
+    client_ip = get_client_ip(request)
+    user_agent = get_user_agent(request)
+    
+    # Revoke all user's refresh tokens
+    db.revoke_all_user_tokens(user.id)
+    
+    # Log logout
+    log_logout(user.username, client_ip, user_agent)
+    
+    return {"message": "Successfully logged out from all devices"}
+
+
 @app.put("/api/settings", response_model=UserResponse)
+@limiter.limit("10/minute")
 def update_settings(
+    request: Request,
     settings: UserUpdate,
     user = Depends(require_auth),
     db: DatabaseService = Depends(get_db_service)
 ):
     """Update user settings (email, gemini_api_key, telegram_id)"""
+    # Get client info for logging
+    client_ip = get_client_ip(request)
+    user_agent = get_user_agent(request)
+    
     # Handle email change separately if provided
     if settings.email and settings.email != user.email:
         # Check if new email already exists
@@ -288,6 +463,9 @@ def update_settings(
         # Send notification to old email
         if user.email:
             EmailService.send_email_change_notification(user.email, user.username)
+        
+        # Log email change
+        log_email_change(user.username, user.email, settings.email, client_ip, user_agent)
         
         # Update email and send verification
         updated_user = db.update_user_email(user.id, settings.email)
@@ -369,7 +547,8 @@ def verify_email(token: str, db: DatabaseService = Depends(get_db_service)):
     return {"message": "Email verified successfully", "already_verified": False}
 
 @app.post("/api/resend-verification")
-def resend_verification(user = Depends(require_auth), db: DatabaseService = Depends(get_db_service)):
+@limiter.limit("3/hour")
+def resend_verification(request: Request, user = Depends(require_auth), db: DatabaseService = Depends(get_db_service)):
     """
     Resend verification email to current user
     """
@@ -494,7 +673,9 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 
 @app.post("/api/profile-picture", response_model=UserResponse)
+@limiter.limit("5/hour")
 async def upload_profile_picture(
+    request: Request,
     file: UploadFile = File(...),
     user = Depends(require_auth),
     db: DatabaseService = Depends(get_db_service)
@@ -509,13 +690,16 @@ async def upload_profile_picture(
             detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
         )
     
-    # Read file content and check size
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB"
-        )
+    # Read file content in chunks and check size (prevents DoS)
+    content = b""
+    chunk_size = 1024 * 1024  # 1MB chunks
+    while chunk := await file.read(chunk_size):
+        content += chunk
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB"
+            )
     
     # Delete old profile picture if exists
     if user.profile_picture_url:

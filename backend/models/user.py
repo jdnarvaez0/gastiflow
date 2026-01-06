@@ -3,8 +3,9 @@ User model for authentication and multi-tenancy
 """
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from datetime import datetime
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, validator
 from typing import Optional
+import re
 
 from models.expense import Base
 
@@ -41,9 +42,22 @@ class UserDB(Base):
 # Pydantic schemas for API
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=100)
-    email: Optional[str] = None
-    password: str = Field(..., min_length=6)
+    email: Optional[EmailStr] = None
+    password: str = Field(..., min_length=8)
     telegram_id: Optional[str] = None
+    
+    @validator('password')
+    def validate_password_strength(cls, v):
+        """Validate password meets security requirements"""
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one digit')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)')
+        return v
 
 
 class UserLogin(BaseModel):
@@ -52,7 +66,7 @@ class UserLogin(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     gemini_api_key: Optional[str] = None
     telegram_id: Optional[str] = None
     full_name: Optional[str] = None
@@ -82,3 +96,31 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
     user_id: Optional[int] = None
+
+
+# Refresh Token Models
+class RefreshTokenDB(Base):
+    """SQLAlchemy model for refresh tokens"""
+    __tablename__ = "refresh_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    token_hash = Column(String(255), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    revoked = Column(Boolean, default=False)
+    
+    def __repr__(self):
+        return f"<RefreshToken(id={self.id}, user_id={self.user_id}, revoked={self.revoked})>"
+
+
+class RefreshTokenRequest(BaseModel):
+    """Request model for refresh token endpoint"""
+    refresh_token: str
+
+
+class RefreshTokenResponse(BaseModel):
+    """Response model for refresh token endpoint"""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
