@@ -21,24 +21,147 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e  # Exit on any error
+            
+            echo "🚀 Starting deployment to EC2..."
             cd ~/gastiflow
             
+            # Backup current version (in case of rollback)
+            echo "📦 Creating backup..."
+            BACKUP_DIR=~/gastiflow_backups/$(date +%Y%m%d_%H%M%S)
+            mkdir -p $BACKUP_DIR
+            cp -r backend $BACKUP_DIR/ || echo "⚠️  Backup failed, continuing..."
+            
             # Pull latest changes
-            git pull origin main
+            echo "📥 Pulling latest changes from main..."
+            git fetch origin
+            git reset --hard origin/main
             
             # Update backend dependencies
+            echo "📦 Installing/updating dependencies..."
             cd backend
             source .venv/bin/activate
+            
+            # Install new security dependencies
+            pip install --upgrade pip --quiet
             pip install -r requirements.txt --quiet
             
-            # Restart services
-            sudo systemctl restart gastiflow-bot
-            sudo systemctl restart gastiflow-api
+            # Verify critical dependencies
+            echo "🔍 Verifying security dependencies..."
+            python -c "import slowapi; print('✅ slowapi installed')" || echo "❌ slowapi missing"
+            python -c "import sentry_sdk; print('✅ sentry-sdk installed')" || echo "❌ sentry-sdk missing"
             
-            # Show status
-            echo "=== Bot Status ==="
-            sudo systemctl status gastiflow-bot --no-pager | head -5
-            echo "=== API Status ==="
-            sudo systemctl status gastiflow-api --no-pager | head -5
+            # Check if JWT_SECRET_KEY is set
+            echo "🔑 Verifying environment configuration..."
+            if [ -z "$JWT_SECRET_KEY" ]; then
+              if ! grep -q "JWT_SECRET_KEY" .env; then
+                echo "❌ ERROR: JWT_SECRET_KEY not set in .env"
+                echo "⚠️  DEPLOYMENT ABORTED - Please set JWT_SECRET_KEY in production .env"
+                exit 1
+              fi
+            fi
             
-            echo "✅ Deploy completed successfully!"
+            # Run database migrations
+            echo "🗄️  Running database migrations..."
+            python migrations/add_refresh_tokens_table.py || echo "⚠️  Migration already applied or failed"
+            
+            # Clean up expired refresh tokens
+            echo "🧹 Cleaning up expired tokens..."
+            python -c "from services.database_service import DatabaseService; import os; db = DatabaseService(os.getenv('DATABASE_URL')); db.cleanup_expired_tokens()" || echo "⚠️  Cleanup skipped"
+            
+            # Restart services with proper error handling
+            echo "🔄 Restarting services..."
+            
+            # Restart bot
+            if sudo systemctl restart gastiflow-bot; then
+              echo "✅ Bot restarted successfully"
+            else
+              echo "❌ Bot restart failed"
+              exit 1
+            fi
+            
+            # Restart API
+            if sudo systemctl restart gastiflow-api; then
+              echo "✅ API restarted successfully"
+            else
+              echo "❌ API restart failed"
+              exit 1
+            fi
+            
+            # Wait for services to start
+            echo "⏳ Waiting for services to start..."
+            sleep 5
+            
+            # Verify services are running
+            echo ""
+            echo "=== 📊 Service Status ==="
+            
+            # Check bot status
+            if sudo systemctl is-active --quiet gastiflow-bot; then
+              echo "✅ Bot: RUNNING"
+              sudo systemctl status gastiflow-bot --no-pager | head -3
+            else
+              echo "❌ Bot: FAILED"
+              sudo journalctl -u gastiflow-bot -n 20 --no-pager
+              exit 1
+            fi
+            
+            echo ""
+            
+            # Check API status
+            if sudo systemctl is-active --quiet gastiflow-api; then
+              echo "✅ API: RUNNING"
+              sudo systemctl status gastiflow-api --no-pager | head -3
+            else
+              echo "❌ API: FAILED"
+              sudo journalctl -u gastiflow-api -n 20 --no-pager
+              exit 1
+            fi
+            
+            # Test API health
+            echo ""
+            echo "=== 🏥 Health Check ==="
+            if curl -f -s http://localhost:8000/api/dashboard > /dev/null; then
+              echo "✅ API health check passed"
+            else
+              echo "❌ API health check failed"
+              exit 1
+            fi
+            
+            # Check for security headers
+            echo ""
+            echo "=== 🔒 Security Verification ==="
+            HEADERS=$(curl -I -s http://localhost:8000/api/dashboard)
+            
+            if echo "$HEADERS" | grep -q "X-Content-Type-Options"; then
+              echo "✅ Security headers present"
+            else
+              echo "⚠️  Security headers missing"
+            fi
+            
+            # Show recent logs for monitoring
+            echo ""
+            echo "=== 📋 Recent API Logs (last 10 lines) ==="
+            sudo journalctl -u gastiflow-api -n 10 --no-pager | grep -E "SECURITY|ERROR|WARNING" || echo "No security events in recent logs"
+            
+            echo ""
+            echo "✅ Deployment completed successfully!"
+            echo "📅 Deployed at: $(date)"
+            echo "🔖 Commit: $(git rev-parse --short HEAD)"
+            echo "📝 Backup location: $BACKUP_DIR"
+
+      - name: Notify on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "❌ DEPLOYMENT FAILED"
+            echo "Checking service logs..."
+            echo "=== Bot Logs ==="
+            sudo journalctl -u gastiflow-bot -n 30 --no-pager
+            echo ""
+            echo "=== API Logs ==="
+            sudo journalctl -u gastiflow-api -n 30 --no-pager

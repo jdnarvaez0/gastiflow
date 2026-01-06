@@ -1,185 +1,207 @@
 # 💰 Gastiflow - AI-Powered Expense Tracker
 
-> **Version 0.1.0** - MVP (Minimum Viable Product)
-
-Un bot de Telegram inteligente para rastrear gastos automáticamente usando IA, con un moderno panel web para visualización y gestión.
+> Sistema inteligente de gestión de gastos con bot de Telegram y panel web
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Nuxt](https://img.shields.io/badge/Nuxt-3-00DC82.svg)](https://nuxt.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://core.telegram.org/bots)
 
 ## ✨ Características
 
-- 🤖 **Bot de Telegram** - Registra gastos desde cualquier lugar
-- 📸 **OCR con IA** - Extrae datos de fotos de facturas usando Google Gemini Vision
-- 🎤 **Transcripción de voz** - Convierte mensajes de voz a gastos
-- 💬 **Procesamiento de lenguaje natural** - Entiende descripciones en texto plano
-- 📊 **Panel Web Moderno** - Dashboard interactivo construido con Nuxt 3 y TailwindCSS
-- 📈 **Google Sheets** - Sincronización automática con hojas de cálculo
-- 💾 **Base de datos PostgreSQL** - Almacenamiento persistente y confiable
-- 🔄 **Múltiples formatos** - Acepta fotos, voz y texto
-
-## 🏗️ Arquitectura
-
-```
-┌─────────────────┐
-│  Telegram Bot   │ ← Usuario envía gasto (foto/voz/texto)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  AI Processor   │ ← Google Gemini (Vision + NLP)
-│ (Gemini Flash)  │
-└────────┬────────┘
-         │
-         ├─────────────┐
-         │             │
-         ▼             ▼
-┌──────────────┐  ┌────────────────┐
-│  PostgreSQL  │  │ Google Sheets  │
-│   Database   │  │  (Backup/Sync) │
-└──────┬───────┘  └────────────────┘
-       │
-       │
-       ▼
-┌──────────────────┐
-│   FastAPI API    │ ← Backend Service
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  Nuxt 3 Frontend │ ← Panel de visualización (Browser)
-└──────────────────┘
-```
+- 🤖 **Bot de Telegram** - Registra gastos con fotos, voz o texto
+- 🧠 **IA Integrada** - Google Gemini para OCR y procesamiento de lenguaje natural
+-  **Autenticación** - Sistema completo de usuarios con JWT
+- � **Dashboard Web** - Visualización de gastos y estadísticas
+- 📧 **Verificación de Email** - Confirmación de cuentas
+- � **Google Sheets** - Sincronización automática
+- 💾 **PostgreSQL** - Base de datos robusta
 
 ## 🛠️ Stack Tecnológico
 
-### Backend
-- **Lenguaje**: Python 3.10+
-- **Framework Web**: FastAPI
-- **AI/LLM**: Google Gemini (gemini-2.5-flash), LangChain
-- **Bot**: python-telegram-bot
-- **Base de Datos**: PostgreSQL, SQLAlchemy
-- **Validación**: Pydantic
-
-### Frontend
-- **Framework**: Nuxt 3 (Vue 3)
-- **UI Library**: Nuxt UI
-- **Estilos**: TailwindCSS
-- **Iconos**: Heroicons
-
-### Infraestructura
-- **Contenedores**: Docker + Docker Compose
-- **Scripting**: PowerShell (para automatización local)
+**Backend:** Python 3.10+, FastAPI, SQLAlchemy, python-telegram-bot  
+**Frontend:** Nuxt 3, Vue 3, Chart.js  
+**IA:** Google Gemini (gemini-2.5-flash)  
+**Database:** PostgreSQL  
+**Deployment:** AWS EC2, Vercel, ngrok
 
 ## 📋 Prerrequisitos
 
-- Python 3.10 o superior
-- Node.js 18+ (para el frontend)
-- PostgreSQL (local o Docker)
-- API Key de Google Gemini
-- Token de Bot de Telegram
-- Credenciales de Google Cloud (para Sheets)
+- Python 3.10+
+- Node.js 18+
+- PostgreSQL
+- [API Key de Google Gemini](https://aistudio.google.com/app/apikey)
+- [Token de Bot de Telegram](https://t.me/botfather)
+- Cuenta de Gmail (para emails)
 
-## 🚀 Instalación y Uso
+## 🚀 Instalación
 
-### 1. Clonar el repositorio
+### 1. Clonar repositorio
 
 ```bash
-git clone https://github.com/jdnarvaez0/gastiflow
+git clone https://github.com/jdnarvaez0/gastiflow.git
 cd gastiflow
 ```
 
-### 2. Configuración Rápida (Windows)
+### 2. Configurar variables de entorno
 
-El proyecto incluye un script de PowerShell para automatizar el inicio de todos los servicios.
+Crea un archivo `.env` basado en `.env.example`:
 
-1.  Asegúrate de tener configurado tu archivo `.env` (ver sección de Configuración).
-2.  Ejecuta el script de inicio:
+```env
+# Telegram
+TELEGRAM_BOT_TOKEN=your_bot_token
 
-```powershell
-.\start-app.ps1
+# IA
+GEMINI_API_KEY=your_gemini_api_key
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/gastiflow
+
+# Auth
+JWT_SECRET_KEY=your_secret_key
+
+# Email (Gmail)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+
+# Frontend
+FRONTEND_URL=http://localhost:3000
 ```
 
-Este script verificará e instalará las dependencias necesarias, y levantará:
-- Backend (FastAPI) en `http://localhost:8000`
-- Bot de Telegram
-- Frontend (Nuxt) en `http://localhost:3000`
+### 3. Instalar dependencias
 
-### 3. Instalación Manual
-
-Si prefieres configurar cada parte manualmente:
-
-#### Backend
-
+**Backend:**
 ```bash
 cd backend
 python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# Linux/Mac
-source .venv/bin/activate
-
+.venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-#### Frontend
-
+**Frontend:**
 ```bash
 cd frontend
 npm install
 ```
 
-### 4. Configuración (.env)
+### 4. Iniciar aplicación
 
-Crea un archivo `.env` en la carpeta raíz (o en `backend/` si ejecutas manualmente) basado en `.env.example`.
-
-**Variables principales:**
-
-```env
-TELEGRAM_BOT_TOKEN=tu_token
-GEMINI_API_KEY=tu_api_key
-DATABASE_URL=postgresql://user:pass@localhost:5432/gastiflow
+**Opción A - Script automático (Windows):**
+```powershell
+.\start-app.ps1
 ```
 
-## 🐳 Docker
+**Opción B - Manual:**
+```bash
+# Terminal 1 - API
+cd backend
+uvicorn web.main:app --reload --port 8000
 
-Para ejecutar todo el stack usando Docker:
+# Terminal 2 - Bot
+cd backend
+python run_bot.py
+
+# Terminal 3 - Frontend
+cd frontend
+npm run dev
+```
+
+**Acceder:**
+- Frontend: http://localhost:3000
+- API Docs: http://localhost:8000/docs
+
+## 🐳 Docker
 
 ```bash
 docker-compose up -d
 ```
 
-Esto levantará la base de datos, el backend y el frontend en contenedores.
+## 🌍 Deployment
 
-## 📁 Estructura del Proyecto
+### Producción Actual
+- **Frontend:** Vercel (https://gastiflow.vercel.app)
+- **Backend:** AWS EC2 + ngrok
+- **Database:** PostgreSQL (Supabase/Neon)
+
+### Configurar ngrok (HTTPS para EC2)
+
+1. **Instalar y configurar:**
+```bash
+sudo snap install ngrok
+ngrok config add-authtoken YOUR_TOKEN
+```
+
+2. **Crear servicio systemd:**
+```bash
+sudo nano /etc/systemd/system/ngrok.service
+```
+
+```ini
+[Unit]
+Description=ngrok secure tunnel
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/snap/bin/ngrok http 8000 --log=stdout --request-header-add='ngrok-skip-browser-warning:true'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+3. **Activar:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable ngrok
+sudo systemctl start ngrok
+```
+
+4. **Obtener URL y configurar en Vercel:**
+```bash
+curl http://localhost:4040/api/tunnels | grep public_url
+```
+
+Agrega `NUXT_API_URL` en Vercel con la URL de ngrok y redeploy.
+
+Ver `DEPLOY.md` para más detalles.
+
+## 📁 Estructura
 
 ```
 gastiflow/
-├── backend/                # Código del servidor y bot
-│   ├── bot/               # Lógica del bot de Telegram
-│   ├── web/               # API FastAPI
-│   ├── services/          # Lógica de negocio (AI, DB, Sheets)
-│   ├── models/            # Modelos SQLAlchemy
-│   └── requirements.txt   # Dependencias Python
-├── frontend/               # Aplicación web Nuxt 3
-│   ├── components/        # Componentes Vue
-│   ├── pages/             # Rutas de la aplicación
-│   └── nuxt.config.ts     # Configuración de Nuxt
-├── docker-compose.yml      # Orquestación de contenedores
-├── start-app.ps1          # Script de inicio rápido (Windows)
-└── README.md              # Documentación
+├── backend/           # Python FastAPI + Bot
+│   ├── bot/          # Telegram bot handlers
+│   ├── web/          # REST API
+│   ├── services/     # Auth, AI, Database, Email
+│   ├── models/       # SQLAlchemy models
+│   └── migrations/   # Database migrations
+├── frontend/          # Nuxt 3 application
+│   ├── pages/        # Routes (login, dashboard, etc)
+│   ├── components/   # Vue components
+│   └── composables/  # Auth logic
+├── .env.example      # Environment template
+├── docker-compose.yml
+└── start-app.ps1     # Windows startup script
 ```
 
 ## 🤝 Contribuir
 
 1. Fork el proyecto
 2. Crea tu rama (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
+3. Commit (`git commit -m 'Add AmazingFeature'`)
+4. Push (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
 ## 📝 Licencia
 
-Este proyecto está bajo la Licencia MIT.
+MIT License - Ver [LICENSE](LICENSE)
+
+---
+
+⭐ Si te fue útil, dale una estrella!
