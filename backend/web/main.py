@@ -306,6 +306,50 @@ def register(request: Request, user_data: UserCreate, db: DatabaseService = Depe
         profile_picture_url=user.profile_picture_url
     )
 
+
+# Add global exception handler for validation errors
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Custom handler for validation errors to prevent exposing sensitive data
+    """
+    # Sanitize error messages - never expose password or sensitive fields
+    sanitized_errors = []
+    sensitive_fields = {'password', 'hashed_password', 'api_key', 'token', 'secret'}
+    
+    for error in exc.errors():
+        error_dict = error.copy()
+        
+        # Check if error is related to sensitive field
+        if 'loc' in error_dict:
+            field_path = error_dict['loc']
+            # Check if any part of the location path contains sensitive field names
+            is_sensitive = any(
+                any(sensitive in str(loc).lower() for sensitive in sensitive_fields)
+                for loc in field_path
+            )
+            
+            if is_sensitive:
+                # Sanitize the error message for sensitive fields
+                error_dict['msg'] = error_dict.get('msg', '').split(',')[0]  # Remove details
+                # Remove the 'ctx' which might contain the actual value
+                if 'ctx' in error_dict:
+                    del error_dict['ctx']
+                # Remove 'input' which contains the submitted value
+                if 'input' in error_dict:
+                    error_dict['input'] = '***'
+        
+        sanitized_errors.append(error_dict)
+    
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": sanitized_errors}
+    )
+
+
 @app.post("/api/login", response_model=RefreshTokenResponse)
 @limiter.limit("5/minute")
 def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: DatabaseService = Depends(get_db_service)):
