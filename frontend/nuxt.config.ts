@@ -20,7 +20,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiUrl: process.env.NUXT_API_URL || 'http://localhost:8000'
+      apiUrl: process.env.NUXT_API_URL || 'http://localhost:8000',
+      telegramBotUsername: process.env.NUXT_TELEGRAM_BOT_USERNAME || 'GastiflowBot'
     }
   },
 

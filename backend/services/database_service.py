@@ -2,9 +2,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from models.expense import Base, ExpenseDB, ExpenseSchema
 from models.user import UserDB, RefreshTokenDB
+from models.telegram_link_code import TelegramLinkCodeDB
 from typing import List, Optional
 from loguru import logger
 import hashlib
+import string
+import secrets
 from datetime import datetime, timedelta
 
 
@@ -761,4 +764,173 @@ class DatabaseService:
             return 0
         finally:
             session.close()
+
+    # ==================== TELEGRAM LINK CODES ====================
+
+    def create_link_code(self, user_id: int) -> Optional[TelegramLinkCodeDB]:
+        """
+        Generate a unique link code for Telegram account linking
+        
+        Args:
+            user_id: User ID to create link code for
+            
+        Returns:
+            TelegramLinkCodeDB object if successful, None otherwise
+        """
+        session = self.get_session()
+        try:
+            # Generate a unique 6-character code
+            code = self._generate_unique_code(session)
+            
+            # Set expiration to 10 minutes from now
+            expires_at = datetime.utcnow() + timedelta(minutes=10)
+            
+            # Create link code
+            link_code = TelegramLinkCodeDB(
+                user_id=user_id,
+                code=code,
+                expires_at=expires_at
+            )
+            
+            session.add(link_code)
+            session.commit()
+            session.refresh(link_code)
+            
+            logger.info(f"Link code created for user {user_id}: {code}")
+            return link_code
+            
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error creating link code: {e}")
+            return None
+        finally:
+            session.close()
+    
+    def _generate_unique_code(self, session: Session, length: int = 6) -> str:
+        """
+        Generate a unique alphanumeric code
+        
+        Args:
+            session: Database session
+            length: Length of the code (default 6)
+            
+        Returns:
+            Unique code string
+        """
+        # Use uppercase letters and digits for readability
+        characters = string.ascii_uppercase + string.digits
+        
+        # Try up to 10 times to generate a unique code
+        for _ in range(10):
+            code = ''.join(secrets.choice(characters) for _ in range(length))
+            
+            # Check if code already exists
+            existing = session.query(TelegramLinkCodeDB).filter(
+                TelegramLinkCodeDB.code == code
+            ).first()
+            
+            if not existing:
+                return code
+        
+        # If we couldn't generate a unique code after 10 tries, raise an error
+        raise Exception("Failed to generate unique link code")
+    
+    def get_link_code(self, code: str) -> Optional[TelegramLinkCodeDB]:
+        """
+        Get a link code by its code string
+        
+        Args:
+            code: The link code string
+            
+        Returns:
+            TelegramLinkCodeDB object if found, None otherwise
+        """
+        session = self.get_session()
+        try:
+            link_code = session.query(TelegramLinkCodeDB).filter(
+                TelegramLinkCodeDB.code == code
+            ).first()
+            return link_code
+        except Exception as e:
+            logger.error(f"Error getting link code: {e}")
+            return None
+        finally:
+            session.close()
+    
+    def use_link_code(self, code: str, telegram_id: str) -> bool:
+        """
+        Mark a link code as used and link the telegram_id to the user
+        
+        Args:
+            code: The link code string
+            telegram_id: Telegram ID to link
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            # Get the link code
+            link_code = session.query(TelegramLinkCodeDB).filter(
+                TelegramLinkCodeDB.code == code
+            ).first()
+            
+            if not link_code:
+                logger.warning(f"Link code not found: {code}")
+                return False
+            
+            # Check if code is valid
+            if not link_code.is_valid():
+                logger.warning(f"Link code invalid or expired: {code}")
+                return False
+            
+            # Check if telegram_id is already linked to another user
+            existing_user = self.get_user_by_telegram_id(telegram_id)
+            if existing_user and existing_user.id != link_code.user_id:
+                logger.warning(f"Telegram ID {telegram_id} already linked to user {existing_user.id}")
+                return False
+            
+            # Mark code as used
+            link_code.used = True
+            link_code.telegram_id = telegram_id
+            
+            # Update user's telegram_id
+            user = session.query(UserDB).filter(UserDB.id == link_code.user_id).first()
+            if user:
+                user.telegram_id = telegram_id
+                session.commit()
+                logger.info(f"Telegram ID {telegram_id} linked to user {user.id}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error using link code: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def cleanup_expired_link_codes(self) -> int:
+        """
+        Delete expired link codes from database
+        
+        Returns:
+            Number of codes deleted
+        """
+        session = self.get_session()
+        try:
+            result = session.query(TelegramLinkCodeDB).filter(
+                TelegramLinkCodeDB.expires_at < datetime.utcnow()
+            ).delete()
+            session.commit()
+            logger.info(f"Cleaned up {result} expired link codes")
+            return result
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error cleaning up expired link codes: {e}")
+            return 0
+        finally:
+            session.close()
+
 

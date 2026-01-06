@@ -72,6 +72,7 @@ def main():
         # Registrar comandos
         application.add_handler(CommandHandler("start", handlers.start_command))
         application.add_handler(CommandHandler("help", handlers.help_command))
+        application.add_handler(CommandHandler("link", handlers.link_command))
         application.add_handler(CommandHandler("stats", handlers.stats_command))
         application.add_handler(CommandHandler("recent", handlers.recent_command))
 

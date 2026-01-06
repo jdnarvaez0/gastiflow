@@ -304,6 +304,53 @@ export const useAuth = () => {
         }
     }
 
+    // Generate Telegram link code
+    const generateLinkCode = async () => {
+        if (!token.value) return null
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const response = await $fetch<{ code: string; expires_at: string }>('/api/telegram/generate-link-code', {
+                baseURL: apiUrl,
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                }
+            })
+            return response
+        } catch (e: any) {
+            error.value = e?.data?.detail || 'Error al generar código de vinculación'
+            return null
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    // Check Telegram link status
+    const checkLinkStatus = async () => {
+        if (!token.value) return null
+
+        try {
+            const response = await $fetch<{ linked: boolean; telegram_id: string | null }>('/api/telegram/link-status', {
+                baseURL: apiUrl,
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                }
+            })
+
+            // Update user if linked
+            if (response.linked && user.value) {
+                user.value.telegram_id = response.telegram_id
+            }
+
+            return response
+        } catch (e: any) {
+            return null
+        }
+    }
+
     return {
         user,
         token,
@@ -321,6 +368,8 @@ export const useAuth = () => {
         resendVerification,
         changeEmail,
         uploadProfilePicture,
-        deleteProfilePicture
+        deleteProfilePicture,
+        generateLinkCode,
+        checkLinkStatus
     }
 }

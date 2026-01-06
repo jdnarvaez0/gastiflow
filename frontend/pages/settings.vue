@@ -172,34 +172,66 @@
                 <h2><i class="fab fa-telegram"></i> Telegram</h2>
                 <div class="telegram-info">
                     <div class="info-row">
+                        <span class="label">Estado:</span>
+                        <span class="value" :class="{ 'linked': user?.telegram_id }">
+                            {{ user?.telegram_id ? '✅ Vinculado' : '⚠️ No vinculado' }}
+                        </span>
+                    </div>
+                    <div v-if="user?.telegram_id" class="info-row">
                         <span class="label">Telegram ID:</span>
-                        <span class="value">{{ user?.telegram_id || 'No vinculado' }}</span>
+                        <span class="value">{{ user.telegram_id }}</span>
                     </div>
                 </div>
                 
-                <form @submit.prevent="saveTelegramId" class="telegram-form">
-                    <div class="form-group">
-                        <label for="telegram_id">
-                            Tu Telegram ID
-                        </label>
-                        <input 
-                            type="text" 
-                            id="telegram_id" 
-                            v-model="telegramId" 
-                            placeholder="123456789"
-                            :disabled="isLoading"
-                        />
-                        <p class="hint">
-                            <i class="fas fa-info-circle"></i>
-                            Escribe /start al bot de Gastiflow en Telegram para ver tu ID
-                        </p>
-                    </div>
-                    
-                    <button type="submit" class="btn-secondary" :disabled="isLoading || !telegramId">
-                        <i class="fas fa-link"></i>
-                        {{ isLoading ? 'Guardando...' : 'Vincular Telegram' }}
+                <!-- Link Code Generation -->
+                <div v-if="!user?.telegram_id" class="telegram-link-section">
+                    <button 
+                        @click="handleGenerateLinkCode" 
+                        class="btn-primary" 
+                        :disabled="isLoading || showLinkCode"
+                    >
+                        <i class="fas fa-qrcode"></i>
+                        {{ isLoading ? 'Generando...' : 'Generar Código de Vinculación' }}
                     </button>
-                </form>
+                    
+                    <!-- Link Code Display -->
+                    <div v-if="showLinkCode" class="link-code-display">
+                        <div class="code-box">
+                            <div class="code-label">Tu código de vinculación:</div>
+                            <div class="code-value">{{ linkCode }}</div>
+                            <div class="code-timer">
+                                <i class="fas fa-clock"></i>
+                                Expira en {{ formatTimeRemaining(linkCodeExpiry) }}
+                            </div>
+                        </div>
+                        
+                        <div class="instructions">
+                            <h4><i class="fas fa-info-circle"></i> Instrucciones:</h4>
+                            <ol>
+                                <li>Abre Telegram y busca el bot de Gastiflow</li>
+                                <li>Envía el comando: <code>/link {{ linkCode }}</code></li>
+                                <li>Espera la confirmación del bot</li>
+                            </ol>
+                            <div class="bot-link">
+                                <a :href="telegramBotUrl" target="_blank" class="btn-secondary">
+                                    <i class="fab fa-telegram"></i>
+                                    Abrir Bot en Telegram
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div v-if="isPolling" class="polling-status">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Esperando vinculación...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Already Linked Message -->
+                <div v-else class="linked-message">
+                    <i class="fas fa-check-circle"></i>
+                    Tu cuenta de Telegram está vinculada correctamente. Ahora puedes usar el bot sin límites.
+                </div>
             </div>
         </div>
         
@@ -226,15 +258,29 @@
 
 <script setup lang="ts">
 const router = useRouter()
-const { user, isLoading, error, updateSettings, logout, isAuthenticated, init, changeEmail, resendVerification, uploadProfilePicture, deleteProfilePicture } = useAuth()
+const { user, isLoading, error, updateSettings, logout, isAuthenticated, init, changeEmail, resendVerification, uploadProfilePicture, deleteProfilePicture, generateLinkCode, checkLinkStatus } = useAuth()
 
 const geminiApiKey = ref('')
-const telegramId = ref('')
 const newEmail = ref('')
 const successMessage = ref<string | null>(null)
 const isResending = ref(false)
 const fullName = ref('')
 const isUploadingPhoto = ref(false)
+
+// Telegram link code state
+const linkCode = ref('')
+const linkCodeExpiry = ref<Date | null>(null)
+const showLinkCode = ref(false)
+const isPolling = ref(false)
+const pollingInterval = ref<NodeJS.Timeout | null>(null)
+const timerInterval = ref<NodeJS.Timeout | null>(null)
+
+// Telegram bot URL (you should configure this in your .env)
+const config = useRuntimeConfig()
+const telegramBotUrl = computed(() => {
+    const botUsername = config.public.telegramBotUsername || 'GastiflowBot'
+    return `https://t.me/${botUsername}`
+})
 
 // Initialize auth on mount
 onMounted(async () => {
@@ -243,14 +289,16 @@ onMounted(async () => {
         router.push('/login')
         return
     }
-    // Pre-fill telegram ID if exists
-    if (user.value?.telegram_id) {
-        telegramId.value = user.value.telegram_id
-    }
     // Pre-fill full name if exists
     if (user.value?.full_name) {
         fullName.value = user.value.full_name
     }
+})
+
+// Cleanup intervals on unmount
+onUnmounted(() => {
+    stopPolling()
+    stopTimer()
 })
 
 // Check if full name has changed
@@ -267,12 +315,82 @@ const saveApiKey = async () => {
     }
 }
 
-const saveTelegramId = async () => {
+// Telegram Link Code Functions
+const handleGenerateLinkCode = async () => {
     successMessage.value = null
-    const success = await updateSettings({ telegram_id: telegramId.value })
-    if (success) {
-        successMessage.value = 'Telegram vinculado correctamente'
+    const response = await generateLinkCode()
+    
+    if (response) {
+        linkCode.value = response.code
+        linkCodeExpiry.value = new Date(response.expires_at)
+        showLinkCode.value = true
+        
+        // Start polling for link status
+        startPolling()
+        
+        // Start timer countdown
+        startTimer()
     }
+}
+
+const startPolling = () => {
+    isPolling.value = true
+    
+    // Poll every 3 seconds
+    pollingInterval.value = setInterval(async () => {
+        const status = await checkLinkStatus()
+        
+        if (status?.linked) {
+            // Link successful!
+            successMessage.value = '✅ ¡Telegram vinculado exitosamente!'
+            stopPolling()
+            stopTimer()
+            showLinkCode.value = false
+            linkCode.value = ''
+        }
+    }, 3000)
+}
+
+const stopPolling = () => {
+    isPolling.value = false
+    if (pollingInterval.value) {
+        clearInterval(pollingInterval.value)
+        pollingInterval.value = null
+    }
+}
+
+const startTimer = () => {
+    // Update timer every second
+    timerInterval.value = setInterval(() => {
+        if (linkCodeExpiry.value && new Date() >= linkCodeExpiry.value) {
+            // Code expired
+            stopTimer()
+            stopPolling()
+            showLinkCode.value = false
+            error.value = 'El código ha expirado. Genera uno nuevo.'
+        }
+    }, 1000)
+}
+
+const stopTimer = () => {
+    if (timerInterval.value) {
+        clearInterval(timerInterval.value)
+        timerInterval.value = null
+    }
+}
+
+const formatTimeRemaining = (expiry: Date | null) => {
+    if (!expiry) return '0:00'
+    
+    const now = new Date()
+    const diff = expiry.getTime() - now.getTime()
+    
+    if (diff <= 0) return '0:00'
+    
+    const minutes = Math.floor(diff / 60000)
+    const seconds = Math.floor((diff % 60000) / 1000)
+    
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
 const handleChangeEmail = async () => {
@@ -670,5 +788,125 @@ const handleDeletePhoto = async () => {
     gap: 1rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border-color);
+}
+
+/* Telegram Link Code Styles */
+.telegram-link-section {
+    margin-top: 1rem;
+}
+
+.link-code-display {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.code-box {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+    border: 2px solid rgba(99, 102, 241, 0.3);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+}
+
+.code-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.code-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 0.5rem;
+    color: var(--accent-primary);
+    font-family: 'Courier New', monospace;
+    margin-bottom: 0.75rem;
+}
+
+.code-timer {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.instructions {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.instructions h4 {
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.instructions ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.instructions li {
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.instructions code {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--accent-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.bot-link {
+    margin-top: 1rem;
+}
+
+.polling-status {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: #60a5fa;
+    font-weight: 500;
+}
+
+.polling-status i {
+    font-size: 1.25rem;
+}
+
+.linked-message {
+    margin-top: 1rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #4ade80;
+}
+
+.linked-message i {
+    font-size: 1.5rem;
+}
+
+.value.linked {
+    color: #4ade80;
+    font-weight: 600;
 }
 </style>

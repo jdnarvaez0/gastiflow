@@ -167,6 +167,102 @@ Regístrate en la web y configura tu Telegram ID para usar tu propia API Key.
 
         await update.message.reply_text(help_text)
 
+    async def link_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Comando /link - Vincular cuenta de Telegram con código
+        Uso: /link ABC123
+        """
+        telegram_id = str(update.effective_user.id)
+        
+        # Check if user is already linked
+        user = self.db.get_user_by_telegram_id(telegram_id)
+        if user and user.username and not user.username.startswith("telegram_"):
+            await update.message.reply_text(
+                f"✅ Tu cuenta ya está vinculada.\n\n"
+                f"👤 Usuario: {user.username}\n"
+                f"📱 Telegram ID: {telegram_id}"
+            )
+            return
+        
+        # Get the code from command arguments
+        if not context.args or len(context.args) == 0:
+            await update.message.reply_text(
+                "❌ Uso incorrecto del comando.\n\n"
+                "📝 Uso correcto: `/link ABC123`\n\n"
+                "Para obtener tu código:\n"
+                "1️⃣ Ve a la aplicación web de Gastiflow\n"
+                "2️⃣ Inicia sesión\n"
+                "3️⃣ Ve a Configuración (Settings)\n"
+                "4️⃣ Haz clic en 'Generar Código de Vinculación'\n"
+                "5️⃣ Usa el código aquí: `/link TU_CODIGO`",
+                parse_mode="Markdown"
+            )
+            return
+        
+        code = context.args[0].upper()
+        
+        # Validate code format (6 alphanumeric characters)
+        if len(code) != 6 or not code.isalnum():
+            await update.message.reply_text(
+                "❌ Código inválido.\n\n"
+                "El código debe tener 6 caracteres alfanuméricos.\n"
+                "Ejemplo: `/link ABC123`",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Try to use the link code
+        success = self.db.use_link_code(code, telegram_id)
+        
+        if success:
+            # Get updated user info
+            linked_user = self.db.get_user_by_telegram_id(telegram_id)
+            await update.message.reply_text(
+                f"✅ ¡Cuenta vinculada exitosamente!\n\n"
+                f"👤 Usuario: {linked_user.username}\n"
+                f"📱 Telegram ID: {telegram_id}\n\n"
+                f"Ahora puedes usar el bot sin límites. ¡Empieza a registrar tus gastos!"
+            )
+            logger.info(f"Telegram {telegram_id} linked to user {linked_user.id}")
+        else:
+            # Get the link code to check why it failed
+            link_code = self.db.get_link_code(code)
+            
+            if not link_code:
+                error_msg = (
+                    "❌ Código no encontrado.\n\n"
+                    "Verifica que hayas copiado el código correctamente.\n"
+                    "Recuerda que los códigos expiran después de 10 minutos."
+                )
+            elif link_code.used:
+                error_msg = (
+                    "❌ Este código ya fue utilizado.\n\n"
+                    "Genera un nuevo código en la aplicación web."
+                )
+            elif link_code.is_expired():
+                error_msg = (
+                    "❌ Este código ha expirado.\n\n"
+                    "Los códigos son válidos por 10 minutos.\n"
+                    "Genera un nuevo código en la aplicación web."
+                )
+            else:
+                # Check if telegram_id is already linked to another account
+                existing_user = self.db.get_user_by_telegram_id(telegram_id)
+                if existing_user and not existing_user.username.startswith("telegram_"):
+                    error_msg = (
+                        f"❌ Tu Telegram ya está vinculado a otra cuenta: {existing_user.username}\n\n"
+                        "Si deseas vincular a una cuenta diferente, primero desvincúlate de la cuenta actual."
+                    )
+                else:
+                    error_msg = (
+                        "❌ Error al vincular la cuenta.\n\n"
+                        "Por favor, intenta de nuevo o contacta soporte."
+                    )
+            
+            await update.message.reply_text(error_msg)
+            logger.warning(f"Failed to link telegram {telegram_id} with code {code}")
+
+
     async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Comando /stats - Estadísticas del usuario

@@ -789,3 +789,61 @@ def delete_profile_picture(
         full_name=updated_user.full_name,
         profile_picture_url=updated_user.profile_picture_url
     )
+
+
+# ==================== TELEGRAM LINK CODE ENDPOINTS ====================
+
+from models.telegram_link_code import TelegramLinkCodeResponse, TelegramLinkStatusResponse
+
+
+@app.post("/api/telegram/generate-link-code", response_model=TelegramLinkCodeResponse)
+@limiter.limit("5/hour")
+def generate_telegram_link_code(
+    request: Request,
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """
+    Generate a unique code for linking Telegram account
+    
+    Returns a 6-character code that expires in 10 minutes
+    """
+    # Create link code
+    link_code = db.create_link_code(user.id)
+    
+    if not link_code:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate link code"
+        )
+    
+    return TelegramLinkCodeResponse(
+        code=link_code.code,
+        expires_at=link_code.expires_at
+    )
+
+
+@app.get("/api/telegram/link-status", response_model=TelegramLinkStatusResponse)
+def check_telegram_link_status(
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """
+    Check if user's Telegram account has been linked
+    
+    Used for polling to detect when link code has been used
+    """
+    # Refresh user data to get latest telegram_id
+    updated_user = db.get_user_by_id(user.id)
+    
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return TelegramLinkStatusResponse(
+        linked=bool(updated_user.telegram_id),
+        telegram_id=updated_user.telegram_id
+    )
+
