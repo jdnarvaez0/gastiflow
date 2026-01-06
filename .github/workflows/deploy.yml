@@ -26,6 +26,15 @@ jobs:
             echo "🚀 Starting deployment to EC2..."
             cd ~/gastiflow
             
+            # Backup .env file (it's in .gitignore and will be deleted by git reset)
+            echo "💾 Backing up .env file..."
+            if [ -f .env ]; then
+              cp .env /tmp/gastiflow_env_backup
+              echo "✅ .env backed up"
+            else
+              echo "⚠️  No .env file found to backup"
+            fi
+            
             # Backup current version (in case of rollback)
             echo "📦 Creating backup..."
             BACKUP_DIR=~/gastiflow_backups/$(date +%Y%m%d_%H%M%S)
@@ -36,6 +45,17 @@ jobs:
             echo "📥 Pulling latest changes from main..."
             git fetch origin
             git reset --hard origin/main
+            
+            # Restore .env file
+            echo "♻️  Restoring .env file..."
+            if [ -f /tmp/gastiflow_env_backup ]; then
+              cp /tmp/gastiflow_env_backup .env
+              echo "✅ .env restored"
+            else
+              echo "❌ ERROR: No .env backup found!"
+              echo "⚠️  DEPLOYMENT ABORTED - .env file missing"
+              exit 1
+            fi
             
             # Update backend dependencies
             echo "📦 Installing/updating dependencies..."
@@ -51,19 +71,20 @@ jobs:
             python -c "import slowapi; print('✅ slowapi installed')" || echo "❌ slowapi missing"
             python -c "import sentry_sdk; print('✅ sentry-sdk installed')" || echo "❌ sentry-sdk missing"
             
-            # Check if JWT_SECRET_KEY is set
+            # Check if JWT_SECRET_KEY is set (check in root .env)
             echo "🔑 Verifying environment configuration..."
-            if [ -z "$JWT_SECRET_KEY" ]; then
-              if ! grep -q "JWT_SECRET_KEY" .env; then
-                echo "❌ ERROR: JWT_SECRET_KEY not set in .env"
-                echo "⚠️  DEPLOYMENT ABORTED - Please set JWT_SECRET_KEY in production .env"
-                exit 1
-              fi
+            cd ..
+            if ! grep -q "JWT_SECRET_KEY" .env; then
+              echo "❌ ERROR: JWT_SECRET_KEY not set in .env"
+              echo "⚠️  DEPLOYMENT ABORTED - Please set JWT_SECRET_KEY in production .env"
+              exit 1
             fi
+            echo "✅ JWT_SECRET_KEY found in .env"
             
-            # Run database migrations
+            # Run database migrations (from project root where .env is)
             echo "🗄️  Running database migrations..."
-            python migrations/add_refresh_tokens_table.py || echo "⚠️  Migration already applied or failed"
+            cd ~/gastiflow
+            python backend/migrations/add_refresh_tokens_table.py || echo "⚠️  Migration already applied or failed"
             
             # Clean up expired refresh tokens
             echo "🧹 Cleaning up expired tokens..."
