@@ -1,45 +1,65 @@
 <template>
-  <div>
+  <div class="flex min-h-screen">
     <!-- Sidebar -->
-    <nav class="sidebar">
-        <div class="logo">
+    <nav class="fixed top-0 left-0 h-screen w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 px-3 py-4 flex flex-col">
+        <div class="flex items-center gap-2 text-primary font-bold text-lg mb-4">
             <i class="fa-solid fa-wallet"></i> Gastiflow
         </div>
-        <ul class="nav-links">
-            <li><NuxtLink to="/" active-class="active"><i class="fa-solid fa-chart-pie"></i> Dashboard</NuxtLink></li>
-            <li><a href="#"><i class="fa-solid fa-list"></i> Movimientos</a></li>
-            <li><a href="#"><i class="fa-solid fa-chart-line"></i> Reportes</a></li>
-            <li><a href="#"><i class="fa-solid fa-credit-card"></i> Cuentas</a></li>
-            <li><a href="#"><i class="fa-solid fa-tags"></i> Categorías</a></li>
+        <ul class="flex-1 space-y-1">
+            <li>
+                <NuxtLink to="/dashboard" active-class="!bg-primary !text-white" class="flex items-center gap-2 px-3 py-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </NuxtLink>
+            </li>
+            <li>
+                <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
+                    <i class="fa-solid fa-list"></i> Movimientos
+                </a>
+            </li>
+            <li>
+                <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
+                    <i class="fa-solid fa-chart-line"></i> Reportes
+                </a>
+            </li>
+            <li>
+                <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
+                    <i class="fa-solid fa-credit-card"></i> Cuentas
+                </a>
+            </li>
+            <li>
+                <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
+                    <i class="fa-solid fa-tags"></i> Categorías
+                </a>
+            </li>
         </ul>
         
-        <div class="sidebar-footer">
-            <ul class="nav-links">
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <ul class="space-y-1">
                 <li v-if="isAuthenticated">
-                    <NuxtLink to="/settings" active-class="active">
+                    <NuxtLink to="/settings" active-class="!bg-primary !text-white" class="flex items-center gap-2 px-3 py-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
                         <i class="fa-solid fa-gear"></i> Ajustes
                     </NuxtLink>
                 </li>
                 <li v-if="isAuthenticated">
-                    <a href="#" @click.prevent="handleLogout">
+                    <a href="#" @click.prevent="handleLogout" class="flex items-center gap-2 px-3 py-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
                         <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
                     </a>
                 </li>
                 <li v-if="!isAuthenticated">
-                    <NuxtLink to="/login">
+                    <NuxtLink to="/login" class="flex items-center gap-2 px-3 py-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
                         <i class="fa-solid fa-sign-in-alt"></i> Iniciar sesión
                     </NuxtLink>
                 </li>
             </ul>
-            <div v-if="isAuthenticated && user" class="user-info">
-                <i class="fa-solid fa-user-circle"></i>
+            <div v-if="isAuthenticated && user" class="flex items-center gap-2 px-3 py-3 text-gray-500 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-gray-700 mt-2">
+                <i class="fa-solid fa-user-circle text-xl text-primary"></i>
                 <span>{{ user.username }}</span>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="ml-56 flex-1 p-8 bg-gray-100 dark:bg-gray-900 min-h-screen">
         <slot />
     </main>
   </div>
@@ -58,21 +78,3 @@ const handleLogout = () => {
     router.push('/login')
 }
 </script>
-
-<style scoped>
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    border-top: 1px solid var(--border-color);
-    margin-top: 0.5rem;
-}
-
-.user-info i {
-    font-size: 1.25rem;
-    color: var(--accent-primary);
-}
-</style>

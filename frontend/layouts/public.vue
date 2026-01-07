@@ -1,24 +1,28 @@
 <template>
-    <div class="public-layout">
+    <div class="min-h-screen flex flex-col bg-gradient-to-br from-landing-bg to-landing-secondary">
         <!-- Simple header for public pages -->
-        <header class="public-header">
-            <NuxtLink to="/" class="logo">
-                <i class="fas fa-wallet"></i>
-                <span>Gastiflow</span>
+        <header class="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-5 bg-[rgba(17,17,27,0.85)] backdrop-blur-lg border-b border-white/5">
+            <NuxtLink to="/" class="flex items-center gap-3 text-2xl font-bold text-accent hover:scale-[1.02] transition-transform no-underline">
+                <i class="fas fa-wallet text-3xl"></i>
+                <span class="hidden sm:inline">Gastiflow</span>
             </NuxtLink>
-            <nav class="public-nav">
-                <NuxtLink to="/login" class="nav-link">Iniciar Sesión</NuxtLink>
-                <NuxtLink to="/register" class="nav-link btn-register">Registrarse</NuxtLink>
+            <nav class="flex items-center gap-4">
+                <NuxtLink to="/login" class="px-5 py-2.5 text-gray-400 no-underline font-medium rounded-lg hover:text-white hover:bg-white/5 transition-all">
+                    Iniciar Sesión
+                </NuxtLink>
+                <NuxtLink to="/register" class="px-5 py-2.5 text-white no-underline font-medium rounded-lg bg-gradient-to-r from-accent to-accent-light hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/40 transition-all">
+                    Registrarse
+                </NuxtLink>
             </nav>
         </header>
 
         <!-- Main content -->
-        <main class="public-main">
+        <main class="flex-1 mt-20">
             <slot />
         </main>
 
         <!-- Footer -->
-        <footer class="public-footer">
+        <footer class="text-center py-8 text-gray-400 text-sm border-t border-gray-700">
             <p>&copy; 2025 Gastiflow. Gestiona tus finanzas de forma inteligente.</p>
         </footer>
     </div>
@@ -35,105 +39,3 @@ const { isAuthenticated } = useAuth()
 //     }
 // })
 </script>
-
-<style scoped>
-.public-layout {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-}
-
-.public-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.25rem 2rem;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    background: rgba(17, 17, 27, 0.85);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--accent-primary);
-    text-decoration: none;
-    transition: transform 0.2s ease;
-}
-
-.logo:hover {
-    transform: scale(1.02);
-}
-
-.logo i {
-    font-size: 1.75rem;
-}
-
-.public-nav {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.nav-link {
-    padding: 0.625rem 1.25rem;
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-weight: 500;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-}
-
-.nav-link:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.btn-register {
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    color: white !important;
-}
-
-.btn-register:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(147, 51, 234, 0.4);
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-}
-
-.public-main {
-    flex: 1;
-    margin-top: 80px;
-}
-
-.public-footer {
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    border-top: 1px solid var(--border-color);
-}
-
-@media (max-width: 768px) {
-    .public-header {
-        padding: 1rem;
-    }
-    
-    .logo span {
-        display: none;
-    }
-    
-    .nav-link {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-    }
-}
-</style>

@@ -1,161 +1,149 @@
 <template>
   <div>
     <!-- Topbar -->
-    <div class="topbar">
-        <div class="page-title">Dashboard</div>
-        <div class="user-actions">
-            <div class="theme-switcher" style="display: flex; gap: 10px; align-items: center; margin-right: 15px;">
-                <button @click="toggleTheme" style="background: none; border: none; cursor: pointer; color: var(--text-color); font-size: 1.2rem;">
-                    <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
-                </button>
-            </div>
-            <button @click="showAddModal = true" class="btn-primary" style="border: none; cursor: pointer;">
+    <div class="flex justify-between items-center mb-6">
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</div>
+        <div class="flex items-center gap-4">
+            <button @click="toggleTheme" class="p-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
+                <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'" class="text-xl"></i>
+            </button>
+            <button @click="showAddModal = true" class="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors flex items-center gap-2">
                 <i class="fa-solid fa-plus"></i> Nuevo Movimiento
             </button>
-            <div class="notifications">
-                <i class="fa-regular fa-bell"
-                    style="font-size: 1.2rem; color: var(--secondary-color); cursor: pointer;"></i>
-            </div>
-            <div class="user-profile">
-                <UserAvatar 
-                    :image-url="user?.profile_picture_url" 
-                    :name="user?.full_name || user?.username"
-                    :username="user?.username"
-                    size="sm"
-                />
-            </div>
+            <button class="p-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
+                <i class="fa-regular fa-bell text-xl"></i>
+            </button>
+            <UserAvatar 
+                :image-url="user?.profile_picture_url" 
+                :name="user?.full_name || user?.username"
+                :username="user?.username"
+                size="sm"
+            />
         </div>
     </div>
 
     <AddTransactionModal :is-open="showAddModal" @close="showAddModal = false" @saved="refreshData" />
 
-    <div v-if="pending" style="text-align: center; padding: 2rem;">
+    <div v-if="pending" class="text-center py-8 text-gray-500 dark:text-gray-400">
         Cargando datos...
     </div>
     
-    <div v-else-if="error" style="color: var(--danger-color); text-align: center;">
+    <div v-else-if="error" class="text-center py-8 text-red-500">
         Error cargando datos: {{ error.message }}
     </div>
 
     <div v-else>
         <!-- Summary Cards -->
-        <div class="dashboard-grid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Balance Total -->
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span>Balance Total</span>
-                    <i class="fa-solid fa-wallet"></i>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Balance Total</span>
+                    <i class="fa-solid fa-wallet text-primary"></i>
                 </div>
-                <div class="stat-value">${{ formatNumber(data?.stats?.balance) }}</div>
-                <div class="stat-trend">Actualizado ahora mismo</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white mb-2">${{ formatNumber(data?.stats?.balance) }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Actualizado ahora mismo</div>
             </div>
 
             <!-- Ingresos -->
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span>Ingresos (este mes)</span>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Ingresos (este mes)</span>
                     <i class="fa-solid fa-arrow-up text-success"></i>
                 </div>
-                <div class="stat-value text-success">${{ formatNumber(data?.stats?.income) }}</div>
-                <div class="stat-trend trend-up">
+                <div class="text-2xl font-bold text-success mb-2">${{ formatNumber(data?.stats?.income) }}</div>
+                <div class="text-xs text-success flex items-center gap-1">
                     <i class="fa-solid fa-arrow-trend-up"></i> +15.2% vs mes anterior
                 </div>
             </div>
 
             <!-- Gastos -->
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span>Gastos (este mes)</span>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Gastos (este mes)</span>
                     <i class="fa-solid fa-arrow-down text-danger"></i>
                 </div>
-                <div class="stat-value text-danger">${{ formatNumber(data?.stats?.expenses) }}</div>
-                <div class="stat-trend trend-down">
+                <div class="text-2xl font-bold text-danger mb-2">${{ formatNumber(data?.stats?.expenses) }}</div>
+                <div class="text-xs text-danger flex items-center gap-1">
                     <i class="fa-solid fa-arrow-trend-down"></i> +5.1% vs mes anterior
                 </div>
             </div>
 
             <!-- Ahorro -->
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span>Ahorro (este mes)</span>
-                    <i class="fa-solid fa-piggy-bank"></i>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Ahorro (este mes)</span>
+                    <i class="fa-solid fa-piggy-bank text-primary"></i>
                 </div>
-                <div class="stat-value text-primary">${{ formatNumber(data?.stats?.savings) }}</div>
-                <div class="stat-trend">Objetivo: $2,000,000.00</div>
+                <div class="text-2xl font-bold text-primary mb-2">${{ formatNumber(data?.stats?.savings) }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Objetivo: $2,000,000.00</div>
             </div>
         </div>
 
         <!-- Charts Section -->
-        <div class="charts-section">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <!-- Main Chart -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>Resumen de Gastos</h3>
-                    <div class="chart-actions">
-                        <button
-                            style="border: none; background: #F3F4F6; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Este
-                            Mes</button>
-                        <button
-                            style="border: none; background: transparent; padding: 5px 10px; color: var(--secondary-color); cursor: pointer;">Últimos
-                            6 meses</button>
+            <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Resumen de Gastos</h3>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300">Este Mes</button>
+                        <button class="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">Últimos 6 meses</button>
                     </div>
                 </div>
-                <div style="position: relative; height: 300px; width: 100%;">
+                <div class="relative h-72">
                     <canvas id="mainChart"></canvas>
                 </div>
             </div>
 
             <!-- Categories -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>Categorías</h3>
-                </div>
-                <div class="category-list">
-                    <div v-for="cat in (data?.categories || []).slice(0, 5)" :key="cat.category" class="category-item">
-                        <div class="cat-info">
-                            <div class="cat-dot" style="background-color: var(--primary-color);"></div>
-                            <span>{{ cat.category }}</span>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Categorías</h3>
+                <div class="space-y-4">
+                    <div v-for="cat in (data?.categories || []).slice(0, 5)" :key="cat.category" class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-primary"></div>
+                            <span class="text-gray-700 dark:text-gray-300">{{ cat.category }}</span>
                         </div>
-                        <span style="font-weight: 600;">${{ formatNumber(cat.amount) }}</span>
+                        <span class="font-semibold text-gray-900 dark:text-white">${{ formatNumber(cat.amount) }}</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Recent Transactions -->
-        <div class="recent-transactions">
-            <div class="chart-header">
-                <h3>Movimientos Recientes</h3>
-                <a href="#" style="color: var(--primary-color); text-decoration: none; font-size: 0.9rem;">Ver Todos</a>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-semibold text-gray-900 dark:text-white">Movimientos Recientes</h3>
+                <a href="#" class="text-primary text-sm hover:underline">Ver Todos</a>
             </div>
-            <div class="table-responsive">
-                <table>
+            <div class="overflow-x-auto">
+                <table class="w-full">
                     <thead>
-                        <tr>
-                            <th>Descripción</th>
-                            <th>Categoría</th>
-                            <th>Fecha</th>
-                            <th style="text-align: right;">Monto</th>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <th class="text-left py-3 text-sm font-medium text-gray-500 dark:text-gray-400">Descripción</th>
+                            <th class="text-left py-3 text-sm font-medium text-gray-500 dark:text-gray-400">Categoría</th>
+                            <th class="text-left py-3 text-sm font-medium text-gray-500 dark:text-gray-400">Fecha</th>
+                            <th class="text-right py-3 text-sm font-medium text-gray-500 dark:text-gray-400">Monto</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="expense in (data?.expenses || [])" :key="expense.id">
-                            <td>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div class="icon-circle"
-                                        :style="{ backgroundColor: expense.transaction_type == 'expense' ? '#EAD4FF' : '#D4FFE4', color: expense.transaction_type == 'expense' ? '#6C5DD3' : '#4CE1B6' }">
+                        <tr v-for="expense in (data?.expenses || [])" :key="expense.id" class="border-b border-gray-100 dark:border-gray-700 last:border-0">
+                            <td class="py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                                        :class="expense.transaction_type == 'expense' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' : 'bg-green-100 dark:bg-green-900/20 text-green-600'">
                                         <i :class="['fa-solid', getCategoryIcon(expense.category, expense.transaction_type)]"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600;">{{ expense.description }}</div>
-                                        <div style="font-size: 0.8rem; color: var(--secondary-color);">{{ expense.transaction_type }}</div>
+                                        <div class="font-medium text-gray-900 dark:text-white">{{ expense.description }}</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ expense.transaction_type }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ expense.category }}</td>
-                            <td>{{ formatDate(expense.date) }}</td>
-                            <td style="text-align: right; font-weight: 600;"
-                                :class="expense.transaction_type == 'expense' ? 'amount-negative' : 'amount-positive'">
+                            <td class="py-4 text-gray-700 dark:text-gray-300">{{ expense.category }}</td>
+                            <td class="py-4 text-gray-700 dark:text-gray-300">{{ formatDate(expense.date) }}</td>
+                            <td class="py-4 text-right font-semibold" :class="expense.transaction_type == 'expense' ? 'text-danger' : 'text-success'">
                                 {{ expense.transaction_type == 'expense' ? '-' : '+' }}${{ formatNumber(expense.amount) }}
                             </td>
                         </tr>
@@ -229,9 +217,11 @@ const toggleTheme = () => {
     isDark.value = !isDark.value
     if (isDark.value) {
         document.documentElement.setAttribute('data-theme', 'dark')
+        document.documentElement.classList.add('dark')
         localStorage.setItem('theme', 'dark')
     } else {
         document.documentElement.removeAttribute('data-theme')
+        document.documentElement.classList.remove('dark')
         localStorage.setItem('theme', 'light')
     }
 }
@@ -242,7 +232,6 @@ const startPolling = () => {
     pollingInterval.value = setInterval(async () => {
         if (token.value) {
             await fetchDashboard()
-            // Re-render chart if data changed
             if (data.value?.history) {
                 renderChart(data.value.history)
             }
@@ -259,29 +248,29 @@ const stopPolling = () => {
 }
 
 onMounted(async () => {
-    // Initialize auth from localStorage
     await init()
     authReady.value = true
-    
-    // Fetch data after auth is ready
     await fetchDashboard()
     
-    // Load saved theme
+    // Load saved theme - Default to dark theme for new users
     const savedTheme = localStorage.getItem('theme')
-    if (savedTheme === 'dark') {
+    if (savedTheme === 'light') {
+        isDark.value = false
+        document.documentElement.removeAttribute('data-theme')
+        document.documentElement.classList.remove('dark')
+    } else {
         isDark.value = true
         document.documentElement.setAttribute('data-theme', 'dark')
+        document.documentElement.classList.add('dark')
     }
 
     if (data.value && data.value.history) {
         renderChart(data.value.history)
     }
     
-    // Start auto-refresh polling
     startPolling()
 })
 
-// Cleanup on unmount
 onUnmounted(() => {
     stopPolling()
 })
@@ -319,7 +308,6 @@ const getCategoryIcon = (category, type) => {
     return iconMap[category] || 'fa-bag-shopping';
 }
 
-
 watch(data, (newData) => {
     if (newData && newData.history) {
         renderChart(newData.history)
@@ -330,7 +318,6 @@ const renderChart = (history) => {
     const ctx = document.getElementById('mainChart')
     if (!ctx) return
 
-    // Destroy existing chart if any (basic check)
     const existingChart = Chart.getChart(ctx)
     if (existingChart) existingChart.destroy()
 

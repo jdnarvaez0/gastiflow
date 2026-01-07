@@ -1,55 +1,91 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="close">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Nuevo Movimiento</h3>
-        <button class="close-btn" @click="close">
+  <div v-if="isOpen" class="fixed inset-0 bg-black/50 flex justify-center items-center z-50" @click.self="close">
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-xl w-full max-w-md shadow-xl">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Nuevo Movimiento</h3>
+        <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl" @click="close">
           <i class="fa-solid fa-times"></i>
         </button>
       </div>
       
       <!-- Error Message -->
-      <div v-if="errorMessage" class="error-message">
-        <i class="fa-solid fa-exclamation-circle"></i>
+      <div v-if="errorMessage" class="flex items-center gap-2 px-4 py-3 mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
+        <i class="fa-solid fa-exclamation-circle flex-shrink-0"></i>
         {{ errorMessage }}
       </div>
 
       <form @submit.prevent="saveTransaction">
-        <div class="form-group">
-          <label>Descripción</label>
-          <input v-model="form.description" type="text" required placeholder="Ej: Compra semanal" />
+        <div class="mb-4">
+          <label class="block mb-2 font-medium text-sm text-gray-700 dark:text-gray-300">Descripción</label>
+          <input 
+            v-model="form.description" 
+            type="text" 
+            required 
+            placeholder="Ej: Compra semanal"
+            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          />
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Monto</label>
-            <input v-model.number="form.amount" type="number" step="0.01" required placeholder="0.00" />
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block mb-2 font-medium text-sm text-gray-700 dark:text-gray-300">Monto</label>
+            <input 
+              v-model.number="form.amount" 
+              type="number" 
+              step="0.01" 
+              required 
+              placeholder="0.00"
+              class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
           </div>
           
-          <div class="form-group">
-            <label>Tipo</label>
-            <select v-model="form.transaction_type" required>
+          <div>
+            <label class="block mb-2 font-medium text-sm text-gray-700 dark:text-gray-300">Tipo</label>
+            <select 
+              v-model="form.transaction_type" 
+              required
+              class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            >
               <option value="expense">Gasto</option>
               <option value="income">Ingreso</option>
             </select>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Categoría</label>
-          <select v-model="form.category" required>
+        <div class="mb-4">
+          <label class="block mb-2 font-medium text-sm text-gray-700 dark:text-gray-300">Categoría</label>
+          <select 
+            v-model="form.category" 
+            required
+            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          >
             <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label>Fecha</label>
-          <input v-model="form.date" type="date" required />
+        <div class="mb-6">
+          <label class="block mb-2 font-medium text-sm text-gray-700 dark:text-gray-300">Fecha</label>
+          <input 
+            v-model="form.date" 
+            type="date" 
+            required
+            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          />
         </div>
 
-        <div class="modal-actions">
-          <button type="button" class="btn-secondary" @click="close">Cancelar</button>
-          <button type="submit" class="btn-primary" :disabled="loading">
+        <div class="flex justify-end gap-3">
+          <button 
+            type="button" 
+            class="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            @click="close"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="px-4 py-2.5 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            :disabled="loading"
+          >
             {{ loading ? 'Guardando...' : 'Guardar' }}
           </button>
         </div>
@@ -142,125 +178,3 @@ const saveTransaction = async () => {
   }
 }
 </script>
-
-<style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: var(--card-bg);
-  padding: 2rem;
-  border-radius: 0.75rem;
-  width: 100%;
-  max-width: 500px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.25rem;
-  cursor: pointer;
-  color: var(--text-muted);
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
-input, select {
-  width: 100%;
-  padding: 0.6rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.375rem;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  font-family: inherit;
-}
-
-input:focus, select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.btn-secondary {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-color);
-  padding: 0.6rem 1rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.btn-secondary:hover {
-  background-color: var(--bg-color);
-}
-
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 0.5rem;
-  color: #dc2626;
-  font-size: 0.9rem;
-}
-
-.error-message i {
-  flex-shrink: 0;
-}
-
-[data-theme="dark"] .error-message {
-  background-color: rgba(220, 38, 38, 0.15);
-  border-color: rgba(220, 38, 38, 0.3);
-  color: #f87171;
-}
-</style>

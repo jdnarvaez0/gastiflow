@@ -1,12 +1,17 @@
 <template>
-    <div class="user-avatar" :class="sizeClass" :style="avatarStyle">
+    <div 
+        class="flex items-center justify-center rounded-full overflow-hidden flex-shrink-0 text-white font-semibold uppercase select-none"
+        :class="sizeClasses"
+        :style="avatarStyle"
+    >
         <img 
-            v-if="imageUrl" 
+            v-if="imageUrl && !imageError" 
             :src="fullImageUrl" 
             :alt="displayName"
+            class="w-full h-full object-cover"
             @error="handleImageError"
         />
-        <span v-else class="initials">{{ initials }}</span>
+        <span v-else class="leading-none">{{ initials }}</span>
     </div>
 </template>
 
@@ -66,8 +71,16 @@ const backgroundColor = computed(() => {
     return colors[Math.abs(hash) % colors.length]
 })
 
-// Size classes
-const sizeClass = computed(() => `avatar-${props.size}`)
+// Size classes using Tailwind
+const sizeClasses = computed(() => {
+    const sizes: Record<string, string> = {
+        sm: 'w-8 h-8 text-xs',
+        md: 'w-12 h-12 text-base',
+        lg: 'w-[72px] h-[72px] text-2xl',
+        xl: 'w-[120px] h-[120px] text-4xl'
+    }
+    return sizes[props.size] || sizes.md
+})
 
 // Avatar style when showing initials
 const avatarStyle = computed(() => {
@@ -91,52 +104,3 @@ const handleImageError = () => {
     imageError.value = true
 }
 </script>
-
-<style scoped>
-.user-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-    color: white;
-    font-weight: 600;
-    text-transform: uppercase;
-    user-select: none;
-}
-
-.user-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.avatar-sm {
-    width: 32px;
-    height: 32px;
-    font-size: 0.75rem;
-}
-
-.avatar-md {
-    width: 48px;
-    height: 48px;
-    font-size: 1rem;
-}
-
-.avatar-lg {
-    width: 72px;
-    height: 72px;
-    font-size: 1.5rem;
-}
-
-.avatar-xl {
-    width: 120px;
-    height: 120px;
-    font-size: 2.5rem;
-}
-
-.initials {
-    line-height: 1;
-}
-</style>
