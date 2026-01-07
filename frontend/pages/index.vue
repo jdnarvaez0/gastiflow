@@ -125,6 +125,60 @@
             </div>
         </section>
 
+        <!-- Free Trial Section -->
+        <section class="free-trial">
+            <div class="free-trial-content">
+                <div class="free-trial-badge">
+                    <i class="fas fa-gift"></i>
+                    <span>Prueba Gratuita</span>
+                </div>
+                <h2>Prueba el bot <span class="gradient-text">sin compromiso</span></h2>
+                <p class="free-trial-description">
+                    Al registrarte, podrás usar el bot de Telegram con interacciones gratuitas para que pruebes 
+                    todas las funcionalidades. ¡Sin necesidad de configurar nada adicional!
+                </p>
+                <div class="trial-features">
+                    <div class="trial-feature">
+                        <div class="trial-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="trial-info">
+                            <h4>5 Interacciones Gratis</h4>
+                            <p>Comienza con 5 interacciones gratuitas para probar el sistema</p>
+                        </div>
+                    </div>
+                    <div class="trial-feature">
+                        <div class="trial-icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <div class="trial-info">
+                            <h4>API Key Opcional</h4>
+                            <p>Configura tu propia API Key de Gemini (gratis) para uso ilimitado</p>
+                        </div>
+                    </div>
+                    <div class="trial-feature">
+                        <div class="trial-icon">
+                            <i class="fas fa-infinity"></i>
+                        </div>
+                        <div class="trial-info">
+                            <h4>Sin Límites</h4>
+                            <p>Con tu propia API Key, disfruta de interacciones ilimitadas</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="trial-cta">
+                    <NuxtLink to="/register" class="btn-primary">
+                        <i class="fas fa-rocket"></i>
+                        Comenzar Prueba Gratuita
+                    </NuxtLink>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="btn-outline">
+                        <i class="fas fa-external-link-alt"></i>
+                        Obtener API Key Gratis
+                    </a>
+                </div>
+            </div>
+        </section>
+
         <!-- CTA Section -->
         <section class="cta-section">
             <div class="cta-content">
@@ -500,6 +554,124 @@ onMounted(() => {
     opacity: 0.5;
 }
 
+/* Free Trial Section */
+.free-trial {
+    padding: 6rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.free-trial-content {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.free-trial-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(76, 225, 182, 0.15);
+    border: 1px solid rgba(76, 225, 182, 0.3);
+    border-radius: 50px;
+    font-size: 0.875rem;
+    color: #4CE1B6;
+    margin-bottom: 1.5rem;
+}
+
+.free-trial h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    font-family: 'Outfit', sans-serif;
+}
+
+.free-trial-description {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 3rem;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.trial-features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.trial-feature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.trial-feature:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-primary);
+}
+
+.trial-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(76, 225, 182, 0.2), rgba(76, 225, 182, 0.1));
+    border-radius: 16px;
+    font-size: 1.5rem;
+    color: #4CE1B6;
+    margin-bottom: 1rem;
+}
+
+.trial-info h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.trial-info p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.trial-cta {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: transparent;
+    color: #4CE1B6;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    border: 1px solid rgba(76, 225, 182, 0.5);
+    transition: all 0.3s ease;
+}
+
+.btn-outline:hover {
+    background: rgba(76, 225, 182, 0.1);
+    border-color: #4CE1B6;
+}
+
 /* CTA Section */
 .cta-section {
     padding: 6rem;
@@ -568,8 +740,13 @@ onMounted(() => {
         display: none;
     }
     
-    .features, .how-it-works, .cta-section {
+    .features, .how-it-works, .cta-section, .free-trial {
         padding: 4rem 2rem;
+    }
+    
+    .trial-features {
+        grid-template-columns: 1fr;
+        gap: 1rem;
     }
     
     .steps {

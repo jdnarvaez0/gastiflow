@@ -17,9 +17,12 @@
                     style="font-size: 1.2rem; color: var(--secondary-color); cursor: pointer;"></i>
             </div>
             <div class="user-profile">
-                <div style="width: 40px; height: 40px; background-color: #E2E8F0; border-radius: 50%;">
-                    <img src="https://avatars.githubusercontent.com/u/739984?v=4" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%;">
-                </div>
+                <UserAvatar 
+                    :image-url="user?.profile_picture_url" 
+                    :name="user?.full_name || user?.username"
+                    :username="user?.username"
+                    size="sm"
+                />
             </div>
         </div>
     </div>
@@ -174,7 +177,7 @@ definePageMeta({
 
 const config = useRuntimeConfig()
 const router = useRouter()
-const { getAuthHeaders, isAuthenticated, token, init } = useAuth()
+const { getAuthHeaders, isAuthenticated, token, init, user } = useAuth()
 
 // Initialize auth on client side
 const authReady = ref(false)

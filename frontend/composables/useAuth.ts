@@ -57,6 +57,39 @@ export const useAuth = () => {
         }
     }
 
+    // Helper to format error messages
+    const formatError = (detail: any): string => {
+        if (!detail) return 'Ha ocurrido un error inesperado'
+
+        // If it's already a string, return it
+        if (typeof detail === 'string') return detail
+
+        // If it's an array (typically Pydantic validation errors)
+        if (Array.isArray(detail)) {
+            return detail.map(err => {
+                if (err.msg) {
+                    // Start with the message
+                    let message = err.msg
+
+                    // Add location context if available and relevant (not for "body")
+                    if (err.loc && Array.isArray(err.loc)) {
+                        const field = err.loc[err.loc.length - 1]
+                        if (field && field !== 'body') {
+                            // Translate common field names if possible, or just capitalize
+                            const fieldName = String(field).charAt(0).toUpperCase() + String(field).slice(1)
+                            return `${fieldName}: ${message}`
+                        }
+                    }
+                    return message
+                }
+                return JSON.stringify(err)
+            }).join('. ')
+        }
+
+        // Fallback for objects
+        return JSON.stringify(detail)
+    }
+
     // Login
     const login = async (credentials: LoginCredentials) => {
         isLoading.value = true
@@ -84,7 +117,7 @@ export const useAuth = () => {
             await fetchUser()
             return true
         } catch (e: any) {
-            error.value = e?.data?.detail || 'Error al iniciar sesión'
+            error.value = formatError(e?.data?.detail) || 'Error al iniciar sesión'
             return false
         } finally {
             isLoading.value = false
@@ -106,7 +139,7 @@ export const useAuth = () => {
             // Auto-login after registration
             return await login({ username: data.username, password: data.password })
         } catch (e: any) {
-            error.value = e?.data?.detail || 'Error al registrarse'
+            error.value = formatError(e?.data?.detail) || 'Error al registrarse'
             return false
         } finally {
             isLoading.value = false
@@ -150,7 +183,7 @@ export const useAuth = () => {
             user.value = updatedUser
             return true
         } catch (e: any) {
-            error.value = e?.data?.detail || 'Error al actualizar configuración'
+            error.value = formatError(e?.data?.detail) || 'Error al actualizar configuración'
             return false
         } finally {
             isLoading.value = false
@@ -192,7 +225,7 @@ export const useAuth = () => {
 
             return { success: true, alreadyVerified: response.already_verified }
         } catch (e: any) {
-            error.value = e?.data?.detail || 'Error al verificar el email'
+            error.value = formatError(e?.data?.detail) || 'Error al verificar el email'
             return { success: false, alreadyVerified: false }
         } finally {
             isLoading.value = false
@@ -217,7 +250,7 @@ export const useAuth = () => {
             })
             return true
         } catch (e: any) {
-            error.value = e?.data?.detail || 'Error al reenviar email de verificación'
+            error.value = formatError(e?.data?.detail) || 'Error al reenviar email de verificación'
             return false
         } finally {
             isLoading.value = false
@@ -243,7 +276,7 @@ export const useAuth = () => {
             user.value = updatedUser
             return true
         } catch (e: any) {
-            error.value = e?.data?.detail || 'Error al cambiar email'
+            error.value = formatError(e?.data?.detail) || 'Error al cambiar email'
             return false
         } finally {
             isLoading.value = false
@@ -272,7 +305,7 @@ export const useAuth = () => {
             user.value = updatedUser
             return true
         } catch (e: any) {
-            error.value = e?.data?.detail || 'Error al subir la foto de perfil'
+            error.value = formatError(e?.data?.detail) || 'Error al subir la foto de perfil'
             return false
         } finally {
             isLoading.value = false
@@ -297,7 +330,7 @@ export const useAuth = () => {
             user.value = updatedUser
             return true
         } catch (e: any) {
-            error.value = e?.data?.detail || 'Error al eliminar la foto de perfil'
+            error.value = formatError(e?.data?.detail) || 'Error al eliminar la foto de perfil'
             return false
         } finally {
             isLoading.value = false
@@ -321,7 +354,7 @@ export const useAuth = () => {
             })
             return response
         } catch (e: any) {
-            error.value = e?.data?.detail || 'Error al generar código de vinculación'
+            error.value = formatError(e?.data?.detail) || 'Error al generar código de vinculación'
             return null
         } finally {
             isLoading.value = false

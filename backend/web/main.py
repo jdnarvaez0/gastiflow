@@ -334,7 +334,16 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             
             if is_sensitive:
                 # Sanitize the error message for sensitive fields
-                error_dict['msg'] = error_dict.get('msg', '').split(',')[0]  # Remove details
+                # We want to keep the specific error message (e.g., "must contain at least one digit")
+                # but remove the raw value if it appears. 
+                # Pydantic "value_error" often comes as "Value error, <reason>"
+                msg = error_dict.get('msg', '')
+                if msg.startswith('Value error, '):
+                    error_dict['msg'] = msg.replace('Value error, ', '')
+                elif msg == 'Value error':
+                    # If it's just "Value error", try to find a better message or leave it
+                    pass
+                
                 # Remove the 'ctx' which might contain the actual value
                 if 'ctx' in error_dict:
                     del error_dict['ctx']
