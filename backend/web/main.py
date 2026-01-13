@@ -303,7 +303,10 @@ def register(request: Request, user_data: UserCreate, db: DatabaseService = Depe
         is_active=user.is_active,
         email_verified=user.email_verified,
         full_name=user.full_name,
-        profile_picture_url=user.profile_picture_url
+        profile_picture_url=user.profile_picture_url,
+        preferred_currency=user.preferred_currency or "ARS",
+        timezone=user.timezone or "America/Bogota",
+        language=user.language or "es"
     )
 
 
@@ -410,7 +413,10 @@ def get_me(user = Depends(require_auth)):
         is_active=user.is_active,
         email_verified=user.email_verified,
         full_name=user.full_name,
-        profile_picture_url=user.profile_picture_url
+        profile_picture_url=user.profile_picture_url,
+        preferred_currency=user.preferred_currency or "ARS",
+        timezone=user.timezone or "America/Bogota",
+        language=user.language or "es"
     )
 
 
@@ -541,7 +547,10 @@ def update_settings(
             user_id=user.id,
             gemini_api_key=settings.gemini_api_key,
             telegram_id=settings.telegram_id,
-            full_name=settings.full_name
+            full_name=settings.full_name,
+            preferred_currency=settings.preferred_currency,
+            timezone=settings.timezone,
+            language=settings.language
         )
     
     if not updated_user:
@@ -557,7 +566,10 @@ def update_settings(
         is_active=updated_user.is_active,
         email_verified=updated_user.email_verified,
         full_name=updated_user.full_name,
-        profile_picture_url=updated_user.profile_picture_url
+        profile_picture_url=updated_user.profile_picture_url,
+        preferred_currency=updated_user.preferred_currency or "ARS",
+        timezone=updated_user.timezone or "America/Bogota",
+        language=updated_user.language or "es"
     )
 
 
@@ -788,7 +800,10 @@ async def upload_profile_picture(
         is_active=updated_user.is_active,
         email_verified=updated_user.email_verified,
         full_name=updated_user.full_name,
-        profile_picture_url=updated_user.profile_picture_url
+        profile_picture_url=updated_user.profile_picture_url,
+        preferred_currency=updated_user.preferred_currency or "ARS",
+        timezone=updated_user.timezone or "America/Bogota",
+        language=updated_user.language or "es"
     )
 
 
@@ -840,7 +855,10 @@ def delete_profile_picture(
         is_active=updated_user.is_active,
         email_verified=updated_user.email_verified,
         full_name=updated_user.full_name,
-        profile_picture_url=updated_user.profile_picture_url
+        profile_picture_url=updated_user.profile_picture_url,
+        preferred_currency=updated_user.preferred_currency or "ARS",
+        timezone=updated_user.timezone or "America/Bogota",
+        language=updated_user.language or "es"
     )
 
 

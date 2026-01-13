@@ -2,22 +2,23 @@
     <div class="min-h-screen flex items-center justify-center p-8">
         <div class="bg-landing-card rounded-2xl p-10 w-full max-w-md shadow-2xl border border-gray-700">
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-accent mb-2">
-                    <i class="fas fa-wallet mr-2"></i>Gastiflow
-                </h1>
-                <p class="text-gray-400">Inicia sesión para continuar</p>
+                <div class="flex items-center justify-center gap-3 mb-4">
+                    <i class="fas fa-wallet text-3xl bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent"></i>
+                    <span class="text-3xl font-bold bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">Gastiflow</span>
+                </div>
+                <p class="text-gray-400">{{ $t('auth.login.subtitle') }}</p>
             </div>
             
             <form @submit.prevent="handleLogin" class="flex flex-col gap-6">
                 <div class="flex flex-col gap-2">
                     <label for="username" class="text-gray-400 text-sm flex items-center gap-2">
-                        <i class="fas fa-user"></i> Usuario
+                        <i class="fas fa-user"></i> {{ $t('auth.login.username') }}
                     </label>
                     <input 
                         type="text" 
                         id="username" 
                         v-model="username" 
-                        placeholder="Tu nombre de usuario"
+                        :placeholder="$t('auth.login.usernamePlaceholder')"
                         required
                         :disabled="isLoading"
                         class="px-4 py-3 rounded-lg border border-gray-600 bg-landing-secondary text-white focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
@@ -26,13 +27,13 @@
                 
                 <div class="flex flex-col gap-2">
                     <label for="password" class="text-gray-400 text-sm flex items-center gap-2">
-                        <i class="fas fa-lock"></i> Contraseña
+                        <i class="fas fa-lock"></i> {{ $t('auth.login.password') }}
                     </label>
                     <input 
                         type="password" 
                         id="password" 
                         v-model="password" 
-                        placeholder="Tu contraseña"
+                        :placeholder="$t('auth.login.passwordPlaceholder')"
                         required
                         :disabled="isLoading"
                         class="px-4 py-3 rounded-lg border border-gray-600 bg-landing-secondary text-white focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
@@ -49,18 +50,18 @@
                     :disabled="isLoading"
                 >
                     <i class="fas fa-sign-in-alt"></i>
-                    {{ isLoading ? 'Cargando...' : 'Iniciar Sesión' }}
+                    {{ isLoading ? $t('auth.login.loading') : $t('auth.login.submit') }}
                 </button>
             </form>
             
             <div class="text-center mt-6 pt-6 border-t border-gray-700">
                 <p class="text-gray-400">
-                    ¿No tienes cuenta? 
-                    <NuxtLink to="/register" class="text-accent font-medium hover:underline">Regístrate aquí</NuxtLink>
+                    {{ $t('auth.login.noAccount') }} 
+                    <NuxtLink to="/register" class="text-accent font-medium hover:underline">{{ $t('auth.login.register') }}</NuxtLink>
                 </p>
                 <p class="mt-3">
                     <NuxtLink to="/" class="text-gray-400 hover:text-accent transition-colors">
-                        <i class="fas fa-arrow-left"></i> Volver a la página principal
+                        <i class="fas fa-arrow-left"></i> {{ $t('auth.login.backToHome') }}
                     </NuxtLink>
                 </p>
             </div>

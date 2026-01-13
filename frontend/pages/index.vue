@@ -8,40 +8,39 @@
             <div class="relative z-10 lg:text-left text-center">
                 <div class="inline-flex items-center gap-2 px-4 py-2 bg-accent/15 border border-accent/30 rounded-full text-sm text-accent mb-6">
                     <i class="fas fa-bolt"></i>
-                    <span>Gestión financiera inteligente</span>
+                    <span>{{ $t('landing.hero.badge') }}</span>
                 </div>
                 <h1 class="text-4xl lg:text-6xl font-bold leading-tight mb-6 font-display">
-                    Toma el control de tus
-                    <span class="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">finanzas personales</span>
+                    {{ $t('landing.hero.title') }}
+                    <span class="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">{{ $t('landing.hero.titleAccent') }}</span>
                 </h1>
                 <p class="text-lg lg:text-xl text-gray-400 leading-relaxed mb-8 max-w-xl lg:mx-0 mx-auto">
-                    Registra gastos con facilidad, analiza tus hábitos financieros y alcanza tus metas de ahorro. 
-                    Todo en un solo lugar, con la ayuda de inteligencia artificial.
+                    {{ $t('landing.hero.subtitle') }}
                 </p>
                 <div class="flex gap-4 mb-12 flex-wrap lg:justify-start justify-center">
                     <NuxtLink to="/register" class="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all">
                         <i class="fas fa-rocket"></i>
-                        Comenzar Gratis
+                        {{ $t('landing.hero.cta') }}
                     </NuxtLink>
                     <NuxtLink to="/login" class="inline-flex items-center gap-2 px-8 py-4 border border-gray-600 text-white rounded-xl font-semibold hover:bg-white/5 hover:border-accent transition-all">
                         <i class="fas fa-sign-in-alt"></i>
-                        Ya tengo cuenta
+                        {{ $t('landing.hero.login') }}
                     </NuxtLink>
                 </div>
                 <div class="flex items-center gap-8 lg:justify-start justify-center">
                     <div class="text-center">
                         <span class="block text-2xl font-bold">100%</span>
-                        <span class="text-sm text-gray-400">Gratis</span>
+                        <span class="text-sm text-gray-400">{{ $t('landing.hero.stats.free') }}</span>
                     </div>
                     <div class="w-px h-10 bg-gray-600"></div>
                     <div class="text-center">
                         <span class="block text-2xl font-bold text-accent"><i class="fab fa-telegram"></i></span>
-                        <span class="text-sm text-gray-400">Integración</span>
+                        <span class="text-sm text-gray-400">{{ $t('landing.hero.stats.integration') }}</span>
                     </div>
                     <div class="w-px h-10 bg-gray-600"></div>
                     <div class="text-center">
                         <span class="block text-2xl font-bold text-accent"><i class="fas fa-brain"></i></span>
-                        <span class="text-sm text-gray-400">Con IA</span>
+                        <span class="text-sm text-gray-400">{{ $t('landing.hero.stats.ai') }}</span>
                     </div>
                 </div>
             </div>
@@ -67,37 +66,37 @@
         <!-- Features Section -->
         <section class="px-6 lg:px-24 py-24 bg-black/20">
             <div class="text-center mb-16">
-                <h2 class="text-3xl lg:text-4xl font-bold mb-4 font-display">Todo lo que necesitas para gestionar tu dinero</h2>
-                <p class="text-lg text-gray-400">Herramientas poderosas diseñadas para simplificar tu vida financiera</p>
+                <h2 class="text-3xl lg:text-4xl font-bold mb-4 font-display">{{ $t('landing.features.title') }}</h2>
+                <p class="text-lg text-gray-400">{{ $t('landing.features.subtitle') }}</p>
             </div>
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div class="bg-landing-card border border-gray-700 rounded-2xl p-8 text-center hover:-translate-y-2 hover:border-accent hover:shadow-xl hover:shadow-accent/15 transition-all">
                     <div class="w-16 h-16 mx-auto mb-6 flex items-center justify-center bg-accent/20 rounded-2xl text-3xl text-accent">
                         <i class="fas fa-mobile-alt"></i>
                     </div>
-                    <h3 class="text-xl font-semibold mb-3">Registro Fácil</h3>
-                    <p class="text-gray-400 leading-relaxed">Registra tus gastos e ingresos en segundos desde cualquier dispositivo.</p>
+                    <h3 class="text-xl font-semibold mb-3">{{ $t('landing.features.easy.title') }}</h3>
+                    <p class="text-gray-400 leading-relaxed">{{ $t('landing.features.easy.description') }}</p>
                 </div>
                 <div class="bg-landing-card border border-gray-700 rounded-2xl p-8 text-center hover:-translate-y-2 hover:border-accent hover:shadow-xl hover:shadow-accent/15 transition-all">
                     <div class="w-16 h-16 mx-auto mb-6 flex items-center justify-center bg-[#0088cc]/20 rounded-2xl text-3xl text-[#0088cc]">
                         <i class="fab fa-telegram"></i>
                     </div>
-                    <h3 class="text-xl font-semibold mb-3">Bot de Telegram</h3>
-                    <p class="text-gray-400 leading-relaxed">Registra gastos desde Telegram con lenguaje natural.</p>
+                    <h3 class="text-xl font-semibold mb-3">{{ $t('landing.features.bot.title') }}</h3>
+                    <p class="text-gray-400 leading-relaxed">{{ $t('landing.features.bot.description') }}</p>
                 </div>
                 <div class="bg-landing-card border border-gray-700 rounded-2xl p-8 text-center hover:-translate-y-2 hover:border-accent hover:shadow-xl hover:shadow-accent/15 transition-all">
                     <div class="w-16 h-16 mx-auto mb-6 flex items-center justify-center bg-success/20 rounded-2xl text-3xl text-success">
                         <i class="fas fa-brain"></i>
                     </div>
-                    <h3 class="text-xl font-semibold mb-3">Análisis con IA</h3>
-                    <p class="text-gray-400 leading-relaxed">IA que categoriza automáticamente tus gastos.</p>
+                    <h3 class="text-xl font-semibold mb-3">{{ $t('landing.features.ai.title') }}</h3>
+                    <p class="text-gray-400 leading-relaxed">{{ $t('landing.features.ai.description') }}</p>
                 </div>
                 <div class="bg-landing-card border border-gray-700 rounded-2xl p-8 text-center hover:-translate-y-2 hover:border-accent hover:shadow-xl hover:shadow-accent/15 transition-all">
                     <div class="w-16 h-16 mx-auto mb-6 flex items-center justify-center bg-accent/20 rounded-2xl text-3xl text-accent">
                         <i class="fas fa-chart-line"></i>
                     </div>
-                    <h3 class="text-xl font-semibold mb-3">Dashboard Intuitivo</h3>
-                    <p class="text-gray-400 leading-relaxed">Visualiza tu situación financiera con gráficos claros.</p>
+                    <h3 class="text-xl font-semibold mb-3">{{ $t('landing.features.dashboard.title') }}</h3>
+                    <p class="text-gray-400 leading-relaxed">{{ $t('landing.features.dashboard.description') }}</p>
                 </div>
             </div>
         </section>
@@ -105,25 +104,25 @@
         <!-- How it works -->
         <section class="px-6 lg:px-24 py-24">
             <div class="text-center mb-16">
-                <h2 class="text-3xl lg:text-4xl font-bold font-display">Comienza en 3 simples pasos</h2>
+                <h2 class="text-3xl lg:text-4xl font-bold font-display">{{ $t('landing.howItWorks.title') }}</h2>
             </div>
             <div class="flex flex-col lg:flex-row items-center justify-center gap-8">
                 <div class="text-center max-w-xs">
                     <div class="w-16 h-16 mx-auto mb-6 flex items-center justify-center bg-gradient-to-br from-accent to-accent-light rounded-full text-2xl font-bold text-white">1</div>
-                    <h3 class="text-xl font-semibold mb-2">Crea tu cuenta</h3>
-                    <p class="text-gray-400">Regístrate gratis en menos de un minuto</p>
+                    <h3 class="text-xl font-semibold mb-2">{{ $t('landing.howItWorks.step1.title') }}</h3>
+                    <p class="text-gray-400">{{ $t('landing.howItWorks.step1.description') }}</p>
                 </div>
                 <div class="w-20 h-0.5 lg:w-0.5 lg:h-20 bg-gradient-to-r lg:bg-gradient-to-b from-accent to-accent-light opacity-50"></div>
                 <div class="text-center max-w-xs">
                     <div class="w-16 h-16 mx-auto mb-6 flex items-center justify-center bg-gradient-to-br from-accent to-accent-light rounded-full text-2xl font-bold text-white">2</div>
-                    <h3 class="text-xl font-semibold mb-2">Configura tu perfil</h3>
-                    <p class="text-gray-400">Conecta Telegram y configura tu API de Gemini</p>
+                    <h3 class="text-xl font-semibold mb-2">{{ $t('landing.howItWorks.step2.title') }}</h3>
+                    <p class="text-gray-400">{{ $t('landing.howItWorks.step2.description') }}</p>
                 </div>
                 <div class="w-20 h-0.5 lg:w-0.5 lg:h-20 bg-gradient-to-r lg:bg-gradient-to-b from-accent to-accent-light opacity-50"></div>
                 <div class="text-center max-w-xs">
                     <div class="w-16 h-16 mx-auto mb-6 flex items-center justify-center bg-gradient-to-br from-accent to-accent-light rounded-full text-2xl font-bold text-white">3</div>
-                    <h3 class="text-xl font-semibold mb-2">¡Listo!</h3>
-                    <p class="text-gray-400">Comienza a registrar gastos y ver tu progreso</p>
+                    <h3 class="text-xl font-semibold mb-2">{{ $t('landing.howItWorks.step3.title') }}</h3>
+                    <p class="text-gray-400">{{ $t('landing.howItWorks.step3.description') }}</p>
                 </div>
             </div>
         </section>
@@ -133,45 +132,45 @@
             <div class="max-w-4xl mx-auto text-center">
                 <div class="inline-flex items-center gap-2 px-4 py-2 bg-success/15 border border-success/30 rounded-full text-sm text-success mb-6">
                     <i class="fas fa-gift"></i>
-                    <span>Prueba Gratuita</span>
+                    <span>{{ $t('landing.trial.badge') }}</span>
                 </div>
                 <h2 class="text-3xl lg:text-4xl font-bold mb-4 font-display">
-                    Prueba el bot <span class="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">sin compromiso</span>
+                    {{ $t('landing.trial.title') }} <span class="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">{{ $t('landing.trial.titleAccent') }}</span>
                 </h2>
                 <p class="text-lg text-gray-400 leading-relaxed mb-12 max-w-2xl mx-auto">
-                    Al registrarte, podrás usar el bot de Telegram con interacciones gratuitas para que pruebes todas las funcionalidades.
+                    {{ $t('landing.trial.description') }}
                 </p>
                 <div class="grid sm:grid-cols-3 gap-6 mb-12">
                     <div class="flex flex-col items-center p-6 bg-landing-card border border-gray-700 rounded-2xl hover:-translate-y-1 hover:border-accent transition-all">
                         <div class="w-14 h-14 flex items-center justify-center bg-success/20 rounded-2xl text-2xl text-success mb-4">
                             <i class="fas fa-comments"></i>
                         </div>
-                        <h4 class="text-lg font-semibold mb-2">5 Interacciones Gratis</h4>
-                        <p class="text-sm text-gray-400">Comienza con 5 interacciones gratuitas</p>
+                        <h4 class="text-lg font-semibold mb-2">{{ $t('landing.trial.card1.title') }}</h4>
+                        <p class="text-sm text-gray-400">{{ $t('landing.trial.card1.description') }}</p>
                     </div>
                     <div class="flex flex-col items-center p-6 bg-landing-card border border-gray-700 rounded-2xl hover:-translate-y-1 hover:border-accent transition-all">
                         <div class="w-14 h-14 flex items-center justify-center bg-success/20 rounded-2xl text-2xl text-success mb-4">
                             <i class="fas fa-key"></i>
                         </div>
-                        <h4 class="text-lg font-semibold mb-2">API Key Opcional</h4>
-                        <p class="text-sm text-gray-400">Configura tu propia API Key para uso ilimitado</p>
+                        <h4 class="text-lg font-semibold mb-2">{{ $t('landing.trial.card2.title') }}</h4>
+                        <p class="text-sm text-gray-400">{{ $t('landing.trial.card2.description') }}</p>
                     </div>
                     <div class="flex flex-col items-center p-6 bg-landing-card border border-gray-700 rounded-2xl hover:-translate-y-1 hover:border-accent transition-all">
                         <div class="w-14 h-14 flex items-center justify-center bg-success/20 rounded-2xl text-2xl text-success mb-4">
                             <i class="fas fa-infinity"></i>
                         </div>
-                        <h4 class="text-lg font-semibold mb-2">Sin Límites</h4>
-                        <p class="text-sm text-gray-400">Con tu API Key, interacciones ilimitadas</p>
+                        <h4 class="text-lg font-semibold mb-2">{{ $t('landing.trial.card3.title') }}</h4>
+                        <p class="text-sm text-gray-400">{{ $t('landing.trial.card3.description') }}</p>
                     </div>
                 </div>
                 <div class="flex justify-center gap-4 flex-wrap">
                     <NuxtLink to="/register" class="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all">
                         <i class="fas fa-rocket"></i>
-                        Comenzar Prueba Gratuita
+                        {{ $t('landing.trial.cta') }}
                     </NuxtLink>
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" class="inline-flex items-center gap-2 px-8 py-4 border border-success/50 text-success rounded-xl font-semibold hover:bg-success/10 hover:border-success transition-all">
                         <i class="fas fa-external-link-alt"></i>
-                        Obtener API Key Gratis
+                        {{ $t('landing.trial.getApiKey') }}
                     </a>
                 </div>
             </div>
@@ -180,11 +179,11 @@
         <!-- CTA Section -->
         <section class="px-6 lg:px-24 py-24 bg-gradient-to-br from-accent/10 to-accent-light/5 border-t border-gray-700">
             <div class="text-center">
-                <h2 class="text-3xl lg:text-4xl font-bold mb-4 font-display">¿Listo para tomar el control?</h2>
-                <p class="text-xl text-gray-400 mb-8">Únete ahora y comienza a gestionar tus finanzas de forma inteligente</p>
+                <h2 class="text-3xl lg:text-4xl font-bold mb-4 font-display">{{ $t('landing.cta.title') }}</h2>
+                <p class="text-xl text-gray-400 mb-8">{{ $t('landing.cta.subtitle') }}</p>
                 <NuxtLink to="/register" class="inline-flex items-center gap-2 px-10 py-5 bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold text-lg hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all">
                     <i class="fas fa-user-plus"></i>
-                    Crear cuenta gratis
+                    {{ $t('landing.cta.button') }}
                 </NuxtLink>
             </div>
         </section>

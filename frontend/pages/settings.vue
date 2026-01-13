@@ -2,16 +2,16 @@
     <div class="max-w-4xl mx-auto p-6">
         <div class="mb-8">
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-2">
-                <i class="fas fa-cog"></i> Configuración
+                <i class="fas fa-cog"></i> {{ $t('settings.title') }}
             </h1>
-            <p class="text-gray-500 dark:text-gray-400">Gestiona tu cuenta y API Key de Gemini</p>
+            <p class="text-gray-500 dark:text-gray-400">{{ $t('settings.subtitle') }}</p>
         </div>
         
         <div class="grid gap-6 md:grid-cols-2">
             <!-- Profile & Photo Card -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-6">
-                    <i class="fas fa-user"></i> Perfil
+                    <i class="fas fa-user"></i> {{ $t('settings.profile.title') }}
                 </h2>
                 
                 <!-- Avatar Section -->
@@ -25,7 +25,7 @@
                     <div class="flex gap-2">
                         <label class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors flex items-center gap-2">
                             <i class="fas fa-camera"></i>
-                            {{ user?.profile_picture_url ? 'Cambiar' : 'Subir foto' }}
+                            {{ user?.profile_picture_url ? $t('settings.profile.changePhoto') : $t('settings.profile.uploadPhoto') }}
                             <input 
                                 type="file" 
                                 accept="image/jpeg,image/png,image/gif,image/webp"
@@ -45,18 +45,18 @@
                     </div>
                     <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         <i class="fas fa-info-circle"></i>
-                        JPG, PNG, GIF o WebP. Máximo 5MB.
+                        {{ $t('settings.profile.photoHint') }}
                     </p>
                 </div>
                 
                 <!-- Profile Info -->
                 <div class="space-y-3 mb-6">
                     <div class="flex justify-between">
-                        <span class="text-gray-500 dark:text-gray-400 text-sm">Usuario:</span>
+                        <span class="text-gray-500 dark:text-gray-400 text-sm">{{ $t('settings.profile.username') }}:</span>
                         <span class="text-gray-900 dark:text-white font-medium">{{ user?.username }}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-500 dark:text-gray-400 text-sm">Interacciones usadas:</span>
+                        <span class="text-gray-500 dark:text-gray-400 text-sm">{{ $t('settings.profile.interactionsUsed') }}:</span>
                         <span class="text-gray-900 dark:text-white font-medium">{{ user?.interaction_count || 0 }}</span>
                     </div>
                 </div>
@@ -64,7 +64,7 @@
                 <!-- Full Name Form -->
                 <form @submit.prevent="handleSaveFullName" class="space-y-4">
                     <div>
-                        <label for="full_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nombre completo</label>
+                        <label for="full_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $t('settings.profile.fullName') }}</label>
                         <input 
                             type="text" 
                             id="full_name" 
@@ -75,12 +75,12 @@
                         />
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
                             <i class="fas fa-info-circle"></i>
-                            Este nombre se usará para generar tus iniciales en el avatar
+                            {{ $t('settings.profile.fullNameHint') }}
                         </p>
                     </div>
                     <button type="submit" class="w-full py-2.5 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2" :disabled="isLoading || !hasFullNameChanged">
                         <i class="fas fa-save"></i>
-                        {{ isLoading ? 'Guardando...' : 'Guardar Nombre' }}
+                        {{ isLoading ? $t('common.loading') : $t('settings.profile.saveName') }}
                     </button>
                 </form>
             </div>
@@ -240,6 +240,76 @@
                     <span>Tu Telegram está vinculado correctamente.</span>
                 </div>
             </div>
+            
+            <!-- Preferences Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm md:col-span-2">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-6">
+                    <i class="fas fa-sliders"></i> {{ $t('settings.preferences.title') }}
+                </h2>
+                
+                <form @submit.prevent="handleSavePreferences" class="grid gap-6 md:grid-cols-3">
+                    <!-- Currency -->
+                    <div>
+                        <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $t('settings.preferences.currency') }}</label>
+                        <select 
+                            id="currency" 
+                            v-model="selectedCurrency"
+                            :disabled="isLoading"
+                            class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-60"
+                        >
+                            <option value="COP">🇨🇴 COP - Peso Colombiano</option>
+                            <option value="USD">🇺🇸 USD - Dólar Americano</option>
+                            <option value="EUR">🇪🇺 EUR - Euro</option>
+                            <option value="ARS">🇦🇷 ARS - Peso Argentino</option>
+                            <option value="MXN">🇲🇽 MXN - Peso Mexicano</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Timezone -->
+                    <div>
+                        <label for="timezone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $t('settings.preferences.timezone') }}</label>
+                        <select 
+                            id="timezone" 
+                            v-model="selectedTimezone"
+                            :disabled="isLoading"
+                            class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-60"
+                        >
+                            <option value="America/Bogota">🇨🇴 Bogotá (GMT-5)</option>
+                            <option value="America/Mexico_City">🇲🇽 Ciudad de México (GMT-6)</option>
+                            <option value="America/Buenos_Aires">🇦🇷 Buenos Aires (GMT-3)</option>
+                            <option value="America/Lima">🇵🇪 Lima (GMT-5)</option>
+                            <option value="America/Santiago">🇨🇱 Santiago (GMT-4)</option>
+                            <option value="America/New_York">🇺🇸 New York (GMT-5)</option>
+                            <option value="Europe/Madrid">🇪🇸 Madrid (GMT+1)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Language -->
+                    <div>
+                        <label for="language" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $t('settings.preferences.language') }}</label>
+                        <select 
+                            id="language" 
+                            v-model="selectedLanguage"
+                            :disabled="isLoading"
+                            class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-60"
+                        >
+                            <option value="es">🇪🇸 Español</option>
+                            <option value="en">🇬🇧 English</option>
+                        </select>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
+                            <i class="fas fa-info-circle"></i>
+                            {{ $t('settings.preferences.languageHint') }}
+                        </p>
+                    </div>
+                    
+                    <div class="md:col-span-3">
+                        <button type="submit" class="w-full py-2.5 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2" :disabled="isLoading || !hasPreferencesChanged">
+                            <i class="fas fa-save"></i>
+                            {{ isLoading ? $t('common.loading') : $t('settings.preferences.save') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
         
         <!-- Success/Error Messages -->
@@ -265,6 +335,7 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const { setLocale  } = useI18n()
 const { user, isLoading, error, updateSettings, logout, isAuthenticated, init, changeEmail, resendVerification, uploadProfilePicture, deleteProfilePicture, generateLinkCode, checkLinkStatus } = useAuth()
 
 const geminiApiKey = ref('')
@@ -281,6 +352,11 @@ const showLinkCode = ref(false)
 const isPolling = ref(false)
 const pollingInterval = ref<NodeJS.Timeout | null>(null)
 const timerInterval = ref<NodeJS.Timeout | null>(null)
+
+// Preferences state
+const selectedCurrency = ref('ARS')
+const selectedTimezone = ref('America/Bogota')
+const selectedLanguage = ref('es')
 
 // Telegram bot URL
 const config = useRuntimeConfig()
@@ -299,6 +375,16 @@ onMounted(async () => {
     if (user.value?.full_name) {
         fullName.value = user.value.full_name
     }
+    // Initialize preferences from user data
+    if (user.value?.preferred_currency) {
+        selectedCurrency.value = user.value.preferred_currency
+    }
+    if (user.value?.timezone) {
+        selectedTimezone.value = user.value.timezone
+    }
+    if (user.value?.language) {
+        selectedLanguage.value = user.value.language
+    }
 })
 
 // Cleanup intervals on unmount
@@ -310,6 +396,13 @@ onUnmounted(() => {
 // Check if full name has changed
 const hasFullNameChanged = computed(() => {
     return fullName.value !== (user.value?.full_name || '')
+})
+
+// Check if preferences have changed
+const hasPreferencesChanged = computed(() => {
+    return selectedCurrency.value !== (user.value?.preferred_currency || 'ARS') ||
+           selectedTimezone.value !== (user.value?.timezone || 'America/Bogota') ||
+           selectedLanguage.value !== (user.value?.language || 'es')
 })
 
 const saveApiKey = async () => {
@@ -414,6 +507,20 @@ const handleSaveFullName = async () => {
     const success = await updateSettings({ full_name: fullName.value || null })
     if (success) {
         successMessage.value = 'Nombre guardado correctamente'
+    }
+}
+
+const handleSavePreferences = async () => {
+    successMessage.value = null
+    const success = await updateSettings({
+        preferred_currency: selectedCurrency.value,
+        timezone: selectedTimezone.value,
+        language: selectedLanguage.value
+    })
+    if (success) {
+        // Change the app language
+        setLocale(selectedLanguage.value)
+        successMessage.value = 'Preferencias guardadas correctamente'
     }
 }
 

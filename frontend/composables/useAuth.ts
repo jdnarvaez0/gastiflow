@@ -13,6 +13,9 @@ export interface User {
     email_verified: boolean
     full_name: string | null
     profile_picture_url: string | null
+    preferred_currency: string
+    timezone: string
+    language: string
 }
 
 export interface LoginCredentials {
@@ -32,6 +35,9 @@ export interface UserSettings {
     gemini_api_key?: string | null
     telegram_id?: string | null
     full_name?: string | null
+    preferred_currency?: string | null
+    timezone?: string | null
+    language?: string | null
 }
 
 export const useAuth = () => {

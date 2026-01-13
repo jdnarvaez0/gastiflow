@@ -32,6 +32,11 @@ class UserDB(Base):
     full_name = Column(String(200), nullable=True)
     profile_picture_url = Column(String(500), nullable=True)
     
+    # User preferences
+    preferred_currency = Column(String(10), default="ARS")
+    timezone = Column(String(50), default="America/Bogota")
+    language = Column(String(5), default="es")
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -70,6 +75,9 @@ class UserUpdate(BaseModel):
     gemini_api_key: Optional[str] = None
     telegram_id: Optional[str] = None
     full_name: Optional[str] = None
+    preferred_currency: Optional[str] = None
+    timezone: Optional[str] = None
+    language: Optional[str] = None
 
 
 class UserResponse(BaseModel):
@@ -83,6 +91,9 @@ class UserResponse(BaseModel):
     email_verified: bool = False
     full_name: Optional[str] = None
     profile_picture_url: Optional[str] = None
+    preferred_currency: str = "ARS"
+    timezone: str = "America/Bogota"
+    language: str = "es"
 
     class Config:
         from_attributes = True

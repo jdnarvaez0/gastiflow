@@ -419,6 +419,8 @@ class DatabaseService:
         session = self.get_session()
         try:
             user = session.query(UserDB).filter(UserDB.username == username).first()
+            if user:
+                session.refresh(user)
             return user
         except Exception as e:
             logger.error(f"Error obteniendo usuario por username: {e}")
@@ -433,6 +435,8 @@ class DatabaseService:
         session = self.get_session()
         try:
             user = session.query(UserDB).filter(UserDB.id == user_id).first()
+            if user:
+                session.refresh(user)
             return user
         except Exception as e:
             logger.error(f"Error obteniendo usuario por ID: {e}")
@@ -447,6 +451,8 @@ class DatabaseService:
         session = self.get_session()
         try:
             user = session.query(UserDB).filter(UserDB.telegram_id == telegram_id).first()
+            if user:
+                session.refresh(user)
             return user
         except Exception as e:
             logger.error(f"Error obteniendo usuario por telegram_id: {e}")
@@ -529,6 +535,8 @@ class DatabaseService:
         session = self.get_session()
         try:
             user = session.query(UserDB).filter(UserDB.email == email).first()
+            if user:
+                session.refresh(user)
             return user
         except Exception as e:
             logger.error(f"Error obteniendo usuario por email: {e}")

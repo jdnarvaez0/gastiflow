@@ -1,7 +1,10 @@
 <template>
   <aside class="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 hidden md:flex flex-col">
     <div class="p-6">
-      <h1 class="text-2xl font-bold text-primary-600 dark:text-primary-400">Gastiflow</h1>
+      <div class="flex items-center gap-2">
+        <i class="fas fa-wallet text-xl text-primary-600"></i>
+        <span class="text-lg font-bold text-primary-600">Gastiflow</span>
+      </div>
     </div>
     
     <nav class="flex-1 px-4 space-y-2">

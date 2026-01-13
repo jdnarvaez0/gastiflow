@@ -1,6 +1,14 @@
 <template>
   <div class="min-h-screen flex items-center justify-center p-8">
     <div class="w-full max-w-lg">
+      <!-- Logo -->
+      <div class="text-center mb-8">
+        <div class="flex items-center justify-center gap-3">
+            <i class="fas fa-wallet text-3xl bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent"></i>
+            <span class="text-3xl font-bold bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">Gastiflow</span>
+        </div>
+      </div>
+
       <!-- Card -->
       <div class="bg-landing-card rounded-2xl p-12 shadow-2xl border border-gray-700">
         <!-- Loading State -->
