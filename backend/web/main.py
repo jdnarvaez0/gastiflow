@@ -157,6 +157,44 @@ async def require_auth(
     
     return user
 
+# ==================== HEALTH CHECK ENDPOINTS ====================
+
+@app.get("/health")
+@app.get("/api/health")
+def health_check(db: DatabaseService = Depends(get_db_service)):
+    """
+    Health check endpoint for monitoring.
+    Returns system status, database connectivity, and uptime.
+    """
+    import psutil
+    
+    # Check database connectivity
+    db_status = "healthy"
+    try:
+        from sqlalchemy import text
+        session = db.get_session()
+        session.execute(text("SELECT 1"))
+        session.close()
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+    
+    # Get system info
+    disk = psutil.disk_usage('/')
+    memory = psutil.virtual_memory()
+    
+    return {
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "1.0.0",
+        "environment": environment,
+        "checks": {
+            "database": db_status,
+            "disk_usage_percent": disk.percent,
+            "disk_free_gb": round(disk.free / (1024**3), 2),
+            "memory_usage_percent": memory.percent
+        }
+    }
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, db: DatabaseService = Depends(get_db_service)):
     # Get current date
