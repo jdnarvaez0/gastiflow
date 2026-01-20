@@ -33,6 +33,40 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI(title="Gastiflow Web")
 
+# ==================== CORS CONFIGURATION (MUST BE FIRST) ====================
+# Import CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
+
+# Get environment configuration
+environment = os.getenv("ENVIRONMENT", "development")
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+# Configure allowed origins
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://gastiflow.vercel.app",
+]
+
+# Add configured frontend URL if different
+if frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
+
+# Only add ngrok in development
+if environment == "development":
+    ngrok_url = os.getenv("NGROK_URL")
+    if ngrok_url and ngrok_url not in allowed_origins:
+        allowed_origins.append(ngrok_url)
+
+# Add CORS middleware FIRST (will be processed last due to middleware order)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "ngrok-skip-browser-warning"],
+)
+
 # Configure rate limiter
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
@@ -187,43 +221,10 @@ def add_expense(
 
 # --- API Endpoints for Nuxt Frontend ---
 
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
 
-# Get environment configuration
-environment = os.getenv("ENVIRONMENT", "development")
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-
-# Configure allowed origins
-allowed_origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
-# Add production frontend
-if "gastiflow.vercel.app" not in allowed_origins:
-    allowed_origins.append("https://gastiflow.vercel.app")
-
-# Add configured frontend URL if different
-if frontend_url not in allowed_origins:
-    allowed_origins.append(frontend_url)
-
-# Only add ngrok in development
-if environment == "development":
-    ngrok_url = os.getenv("NGROK_URL")
-    if ngrok_url and ngrok_url not in allowed_origins:
-        allowed_origins.append(ngrok_url)
-
-# Add CORS middleware with strict configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "ngrok-skip-browser-warning"],
-)
 
 # Add HTTPS redirect in production
 if environment == "production":
