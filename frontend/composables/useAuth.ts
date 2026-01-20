@@ -110,7 +110,8 @@ export const useAuth = () => {
                 baseURL: apiUrl,
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'ngrok-skip-browser-warning': 'true'
                 },
                 body: formData.toString()
             })
@@ -139,6 +140,9 @@ export const useAuth = () => {
             await $fetch<User>('/api/register', {
                 baseURL: apiUrl,
                 method: 'POST',
+                headers: {
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: data
             })
 
@@ -160,7 +164,8 @@ export const useAuth = () => {
             const userData = await $fetch<User>('/api/me', {
                 baseURL: apiUrl,
                 headers: {
-                    'Authorization': `Bearer ${token.value}`
+                    'Authorization': `Bearer ${token.value}`,
+                    'ngrok-skip-browser-warning': 'true'
                 }
             })
             user.value = userData
@@ -182,7 +187,8 @@ export const useAuth = () => {
                 baseURL: apiUrl,
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${token.value}`
+                    'Authorization': `Bearer ${token.value}`,
+                    'ngrok-skip-browser-warning': 'true'
                 },
                 body: settings
             })
@@ -207,10 +213,13 @@ export const useAuth = () => {
 
     // Get auth headers for API calls
     const getAuthHeaders = () => {
-        if (!token.value) return {}
-        return {
-            'Authorization': `Bearer ${token.value}`
+        const headers: Record<string, string> = {
+            'ngrok-skip-browser-warning': 'true'
         }
+        if (token.value) {
+            headers['Authorization'] = `Bearer ${token.value}`
+        }
+        return headers
     }
 
     // Verify email with token
@@ -221,6 +230,9 @@ export const useAuth = () => {
         try {
             const response = await $fetch<{ message: string; already_verified: boolean }>('/api/verify-email', {
                 baseURL: apiUrl,
+                headers: {
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 params: { token: verificationToken }
             })
 
@@ -251,7 +263,8 @@ export const useAuth = () => {
                 baseURL: apiUrl,
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token.value}`
+                    'Authorization': `Bearer ${token.value}`,
+                    'ngrok-skip-browser-warning': 'true'
                 }
             })
             return true
@@ -275,7 +288,8 @@ export const useAuth = () => {
                 baseURL: apiUrl,
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${token.value}`
+                    'Authorization': `Bearer ${token.value}`,
+                    'ngrok-skip-browser-warning': 'true'
                 },
                 body: { email: newEmail }
             })
@@ -304,7 +318,8 @@ export const useAuth = () => {
                 baseURL: apiUrl,
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token.value}`
+                    'Authorization': `Bearer ${token.value}`,
+                    'ngrok-skip-browser-warning': 'true'
                 },
                 body: formData
             })
@@ -330,7 +345,8 @@ export const useAuth = () => {
                 baseURL: apiUrl,
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token.value}`
+                    'Authorization': `Bearer ${token.value}`,
+                    'ngrok-skip-browser-warning': 'true'
                 }
             })
             user.value = updatedUser
@@ -355,7 +371,8 @@ export const useAuth = () => {
                 baseURL: apiUrl,
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token.value}`
+                    'Authorization': `Bearer ${token.value}`,
+                    'ngrok-skip-browser-warning': 'true'
                 }
             })
             return response
@@ -375,7 +392,8 @@ export const useAuth = () => {
             const response = await $fetch<{ linked: boolean; telegram_id: string | null }>('/api/telegram/link-status', {
                 baseURL: apiUrl,
                 headers: {
-                    'Authorization': `Bearer ${token.value}`
+                    'Authorization': `Bearer ${token.value}`,
+                    'ngrok-skip-browser-warning': 'true'
                 }
             })
 

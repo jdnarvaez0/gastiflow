@@ -41,6 +41,9 @@ export const useApi = () => {
     const getDashboardData = async () => {
         return await useFetch<DashboardData>('/api/dashboard', {
             baseURL: apiUrl,
+            headers: {
+                'ngrok-skip-browser-warning': 'true'
+            }
         })
     }
 
