@@ -1,116 +1,112 @@
-# 💰 Gastiflow - AI-Powered Expense Tracker
+# 💰 Gastiflow
 
-> Sistema inteligente de gestión de gastos con bot de Telegram y panel web
+> AI-powered expense tracker with Telegram bot integration and web dashboard
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Nuxt](https://img.shields.io/badge/Nuxt-3-00DC82.svg)](https://nuxt.com)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688.svg)](https://fastapi.tiangolo.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## ✨ Características
+## ✨ Features
 
-- 🤖 **Bot de Telegram** - Registra gastos con fotos, voz o texto
-- 🧠 **IA Integrada** - Google Gemini para OCR y procesamiento de lenguaje natural
--  **Autenticación** - Sistema completo de usuarios con JWT
-- � **Dashboard Web** - Visualización de gastos y estadísticas
-- 📧 **Verificación de Email** - Confirmación de cuentas
-- � **Google Sheets** - Sincronización automática
-- 💾 **PostgreSQL** - Base de datos robusta
+- 🤖 **Telegram Bot** - Track expenses via photos, voice, or text
+- 🧠 **AI-Powered** - Google Gemini for OCR and natural language processing
+- 🔐 **Authentication** - JWT-based user system with email verification
+- 📊 **Web Dashboard** - Expense visualization and stats
+- 📧 **Email Verification** - Secure account confirmation
+- 📑 **Google Sheets** - Auto-sync expenses
+- 💾 **PostgreSQL** - Robust database storage
+- 🏗️ **Modular Architecture** - Clean FastAPI routers pattern
 
-## 🛠️ Stack Tecnológico
+## 🛠️ Tech Stack
 
-**Backend:** Python 3.10+, FastAPI, SQLAlchemy, python-telegram-bot  
-**Frontend:** Nuxt 3, Vue 3, Chart.js  
-**IA:** Google Gemini (gemini-2.5-flash)  
-**Database:** PostgreSQL  
-**Deployment:** AWS EC2, Vercel, ngrok
+| Layer | Technologies |
+|-------|-------------|
+| **Backend** | Python 3.10+, FastAPI, SQLAlchemy, python-telegram-bot |
+| **Frontend** | Nuxt 3, Vue 3, TailwindCSS, Chart.js |
+| **AI** | Google Gemini 2.0 Flash |
+| **Database** | PostgreSQL |
+| **Deployment** | AWS EC2, Vercel, ngrok |
 
-## 📋 Prerrequisitos
+## 🚀 Quick Start
 
-- Python 3.10+
-- Node.js 18+
-- PostgreSQL
-- [API Key de Google Gemini](https://aistudio.google.com/app/apikey)
-- [Token de Bot de Telegram](https://t.me/botfather)
-- Cuenta de Gmail (para emails)
+### Prerequisites
 
-## 🚀 Instalación
+- Python 3.10+ and Node.js 18+
+- PostgreSQL database
+- [Gemini API Key](https://aistudio.google.com/app/apikey)
+- [Telegram Bot Token](https://t.me/botfather)
 
-### 1. Clonar repositorio
+### Setup
 
+1. **Clone and configure**
 ```bash
 git clone https://github.com/jdnarvaez0/gastiflow.git
 cd gastiflow
+cp backend/.env.example backend/.env
+# Edit backend/.env with your credentials
 ```
 
-### 2. Configurar variables de entorno
-
-Crea un archivo `.env` basado en `.env.example`:
-
-```env
-# Telegram
-TELEGRAM_BOT_TOKEN=your_bot_token
-
-# IA
-GEMINI_API_KEY=your_gemini_api_key
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/gastiflow
-
-# Auth
-JWT_SECRET_KEY=your_secret_key
-
-# Email (Gmail)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASSWORD=your_gmail_app_password
-
-# Frontend
-FRONTEND_URL=http://localhost:3000
-```
-
-### 3. Instalar dependencias
-
-**Backend:**
+2. **Install dependencies**
 ```bash
+# Backend
 cd backend
 python -m venv .venv
-.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -r requirements.txt
-```
 
-**Frontend:**
-```bash
-cd frontend
+# Frontend
+cd ../frontend
 npm install
 ```
 
-### 4. Iniciar aplicación
-
-**Opción A - Script automático (Windows):**
-```powershell
-.\start-app.ps1
-```
-
-**Opción B - Manual:**
+3. **Run services**
 ```bash
-# Terminal 1 - API
-cd backend
-uvicorn web.main:app --reload --port 8000
+# Option A: Automated (Windows)
+.\start-app.ps1
 
-# Terminal 2 - Bot
-cd backend
-python run_bot.py
+# Option B: Manual
+# Terminal 1 - API
+cd backend && uvicorn web.main:app --reload --port 8000
+
+# Terminal 2 - Telegram Bot
+cd backend && python run_bot.py
 
 # Terminal 3 - Frontend
-cd frontend
-npm run dev
+cd frontend && npm run dev
 ```
 
-**Acceder:**
+**Access:**
 - Frontend: http://localhost:3000
 - API Docs: http://localhost:8000/docs
+- Health Check: http://localhost:8000/api/health
+
+## 📁 Project Structure
+
+```
+gastiflow/
+├── backend/
+│   ├── web/
+│   │   ├── main.py           # FastAPI app (115 lines)
+│   │   ├── config.py         # Environment config
+│   │   ├── dependencies.py   # Auth & DB dependencies
+│   │   ├── middleware.py     # CORS, security, rate limiting
+│   │   └── routers/          # Modular API endpoints
+│   │       ├── auth.py       # Authentication
+│   │       ├── expenses.py   # Expense management
+│   │       ├── profile.py    # Profile & settings
+│   │       ├── telegram.py   # Telegram linking
+│   │       └── health.py     # System monitoring
+│   ├── bot/                  # Telegram bot handlers
+│   ├── services/             # Business logic (Auth, AI, DB, Email)
+│   ├── models/               # SQLAlchemy models
+│   └── migrations/           # Database migrations
+├── frontend/
+│   ├── pages/                # Routes (login, dashboard, settings)
+│   ├── components/           # Vue components
+│   └── composables/          # Reusable logic (auth, API)
+└── .env.example              # Environment template
+```
 
 ## 🐳 Docker
 
@@ -120,88 +116,57 @@ docker-compose up -d
 
 ## 🌍 Deployment
 
-### Producción Actual
-- **Frontend:** Vercel (https://gastiflow.vercel.app)
-- **Backend:** AWS EC2 + ngrok
-- **Database:** PostgreSQL (Supabase/Neon)
+**Production Setup:**
+- Frontend: [Vercel](https://gastiflow.vercel.app)
+- Backend: AWS EC2 + ngrok tunnel
+- Database: PostgreSQL (Supabase/Neon compatible)
 
-### Configurar ngrok (HTTPS para EC2)
+See [DEPLOY.md](DEPLOY.md) for detailed instructions.
 
-1. **Instalar y configurar:**
-```bash
-sudo snap install ngrok
-ngrok config add-authtoken YOUR_TOKEN
+## 🔧 Environment Variables
+
+Key variables (see `backend/.env.example` for full list):
+
+```env
+# Required
+TELEGRAM_BOT_TOKEN=your_bot_token
+GEMINI_API_KEY=your_api_key
+DATABASE_URL=postgresql://user:pass@host:5432/db
+JWT_SECRET_KEY=your_secret_key
+
+# Optional
+SMTP_USER=your@gmail.com        # For email verification
+SMTP_PASSWORD=app_password       # Gmail app password
+FRONTEND_URL=http://localhost:3000
 ```
 
-2. **Crear servicio systemd:**
-```bash
-sudo nano /etc/systemd/system/ngrok.service
-```
+## 📊 API Endpoints
 
-```ini
-[Unit]
-Description=ngrok secure tunnel
-After=network.target
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | System health check |
+| `/api/register` | POST | User registration |
+| `/api/login` | POST | Login (returns JWT) |
+| `/api/me` | GET | Get current user |
+| `/api/dashboard` | GET | Expense stats |
+| `/api/expenses` | POST | Add expense |
+| `/api/profile-picture` | POST | Upload avatar |
+| `/api/telegram/link-code` | POST | Get Telegram link code |
 
-[Service]
-Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu
-ExecStart=/snap/bin/ngrok http 8000 --log=stdout --request-header-add='ngrok-skip-browser-warning:true'
-Restart=always
-RestartSec=10
+Full API docs: http://localhost:8000/docs
 
-[Install]
-WantedBy=multi-user.target
-```
+## 🤝 Contributing
 
-3. **Activar:**
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable ngrok
-sudo systemctl start ngrok
-```
+1. Fork the project
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
 
-4. **Obtener URL y configurar en Vercel:**
-```bash
-curl http://localhost:4040/api/tunnels | grep public_url
-```
+## 📝 License
 
-Agrega `NUXT_API_URL` en Vercel con la URL de ngrok y redeploy.
-
-Ver `DEPLOY.md` para más detalles.
-
-## 📁 Estructura
-
-```
-gastiflow/
-├── backend/           # Python FastAPI + Bot
-│   ├── bot/          # Telegram bot handlers
-│   ├── web/          # REST API
-│   ├── services/     # Auth, AI, Database, Email
-│   ├── models/       # SQLAlchemy models
-│   └── migrations/   # Database migrations
-├── frontend/          # Nuxt 3 application
-│   ├── pages/        # Routes (login, dashboard, etc)
-│   ├── components/   # Vue components
-│   └── composables/  # Auth logic
-├── .env.example      # Environment template
-├── docker-compose.yml
-└── start-app.ps1     # Windows startup script
-```
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crea tu rama (`git checkout -b feature/AmazingFeature`)
-3. Commit (`git commit -m 'Add AmazingFeature'`)
-4. Push (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📝 Licencia
-
-MIT License - Ver [LICENSE](LICENSE)
+MIT License - See [LICENSE](LICENSE)
 
 ---
 
-⭐ Si te fue útil, dale una estrella!
+⭐ Star this repo if you find it useful!
