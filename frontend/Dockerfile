@@ -1,14 +1,14 @@
-# Use Node.js 20
-FROM node:20-alpine
+# Build stage
+FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -19,6 +19,19 @@ ENV NUXT_API_URL=$NUXT_API_URL
 
 # Build the application
 RUN npm run build
+
+# Runtime stage
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application from builder
+COPY --from=builder /app/.output ./.output
+COPY --from=builder /app/package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production
 
 # Expose port 3000
 EXPOSE 3000

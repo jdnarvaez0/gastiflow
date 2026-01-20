@@ -1,0 +1,27 @@
+# Development overrides for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: '3.8'
+
+services:
+  api:
+    command: uvicorn web.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+    environment:
+      - ENVIRONMENT=development
+
+  bot:
+    volumes:
+      - ./backend:/app
+    environment:
+      - ENVIRONMENT=development
+
+  frontend:
+    build:
+      context: ./frontend
+      target: builder # Use only build stage for hot reload
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules

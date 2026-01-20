@@ -12,10 +12,16 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   bot:
     build: ./backend
@@ -29,12 +35,14 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   api:
     build: ./backend
     container_name: gastiflow_api
-    command: uvicorn web.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn web.main:app --host 0.0.0.0 --port 8000
+    restart: always
     volumes:
       - ./backend:/app
     ports:
@@ -44,8 +52,14 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
-      - db
-      - bot
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
 
   frontend:
     build:
@@ -53,12 +67,14 @@ services:
       args:
         - NUXT_API_URL=http://api:8000
     container_name: gastiflow_frontend
+    restart: always
     ports:
       - "3000:3000"
     environment:
       - NUXT_API_URL=http://api:8000
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   postgres_data:
