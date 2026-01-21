@@ -47,3 +47,4 @@ DEPLOY.md
 # Utility/dev scripts
 check_emails.py
 unlink_telegram.py
+start-app.ps1
