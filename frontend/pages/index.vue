@@ -18,14 +18,22 @@
                     {{ $t('landing.hero.subtitle') }}
                 </p>
                 <div class="flex gap-4 mb-12 flex-wrap lg:justify-start justify-center">
-                    <NuxtLink to="/register" class="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all">
-                        <i class="fas fa-rocket"></i>
-                        {{ $t('landing.hero.cta') }}
-                    </NuxtLink>
-                    <NuxtLink to="/login" class="inline-flex items-center gap-2 px-8 py-4 border border-gray-600 text-white rounded-xl font-semibold hover:bg-white/5 hover:border-accent transition-all">
-                        <i class="fas fa-sign-in-alt"></i>
-                        {{ $t('landing.hero.login') }}
-                    </NuxtLink>
+                    <UButton
+                        to="/register"
+                        icon="i-heroicons-rocket-launch"
+                        label="Comenzar ahora"
+                        size="xl"
+                        class="bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all"
+                    />
+                    <UButton
+                        to="/login"
+                        icon="i-heroicons-arrow-right-start-on-rectangle"
+                        label="Iniciar sesión"
+                        variant="outline"
+                        color="neutral"
+                        size="xl"
+                        class="border-gray-600 text-white rounded-xl font-semibold hover:bg-white/5 hover:border-accent transition-all"
+                    />
                 </div>
                 <div class="flex items-center gap-8 lg:justify-start justify-center">
                     <div class="text-center">
@@ -164,14 +172,23 @@
                     </div>
                 </div>
                 <div class="flex justify-center gap-4 flex-wrap">
-                    <NuxtLink to="/register" class="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all">
-                        <i class="fas fa-rocket"></i>
-                        {{ $t('landing.trial.cta') }}
-                    </NuxtLink>
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="inline-flex items-center gap-2 px-8 py-4 border border-success/50 text-success rounded-xl font-semibold hover:bg-success/10 hover:border-success transition-all">
-                        <i class="fas fa-external-link-alt"></i>
-                        {{ $t('landing.trial.getApiKey') }}
-                    </a>
+                    <UButton
+                        to="/register"
+                        icon="i-heroicons-rocket-launch"
+                        label="Empezar ahora"
+                        size="xl"
+                        class="bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all"
+                    />
+                    <UButton
+                        href="https://aistudio.google.com/app/apikey"
+                        target="_blank"
+                        icon="i-heroicons-arrow-top-right-on-square"
+                        label="Obtener API Key"
+                        variant="outline"
+                        color="success"
+                        size="xl"
+                        class="border-success/50 text-success rounded-xl font-semibold hover:bg-success/10 hover:border-success transition-all"
+                    />
                 </div>
             </div>
         </section>
@@ -181,10 +198,13 @@
             <div class="text-center">
                 <h2 class="text-3xl lg:text-4xl font-bold mb-4 font-display">{{ $t('landing.cta.title') }}</h2>
                 <p class="text-xl text-gray-400 mb-8">{{ $t('landing.cta.subtitle') }}</p>
-                <NuxtLink to="/register" class="inline-flex items-center gap-2 px-10 py-5 bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold text-lg hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all">
-                    <i class="fas fa-user-plus"></i>
-                    {{ $t('landing.cta.button') }}
-                </NuxtLink>
+                <UButton
+                    to="/register"
+                    icon="i-heroicons-user-plus"
+                    label="Crear cuenta gratis"
+                    size="xl"
+                    class="bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold text-lg hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all px-10 py-5"
+                />
             </div>
         </section>
     </div>

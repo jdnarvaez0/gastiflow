@@ -48,3 +48,7 @@ DEPLOY.md
 check_emails.py
 unlink_telegram.py
 start-app.ps1
+
+# agents
+.agents/
+.agent/

@@ -1,5 +1,5 @@
 <template>
-  <UCard :ui="{ body: { padding: 'p-6' }, ring: '', shadow: 'shadow-sm' }" class="w-full h-full border border-gray-100 dark:border-gray-800">
+  <UCard :ui="{ body: { padding: 'p-6' }, ring: '', shadow: 'shadow-sm' }" class="w-full h-full border border-gray-100 dark:border-gray-800 transition-all hover:scale-[1.02] hover:shadow-md cursor-default">
     <div class="flex justify-between items-start">
       <div>
         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ title }}</p>
