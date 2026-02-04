@@ -43,12 +43,12 @@ jobs:
 
             # Rotate backups (keep last 5)
             echo "🧹 Cleaning up old backups..."
-            # List all backups by time, keep top 5, delete rest
             # Check if directory exists first
             if [ -d ~/gastiflow_backups ]; then
               cd ~/gastiflow_backups
               # List directories by time (newest first), skip first 5, delete the rest
-              ls -dt * | tail -n +6 | xargs -r rm -rf
+              # Use sudo to handle permission issues
+              ls -dt */ 2>/dev/null | tail -n +6 | xargs -r sudo rm -rf || echo "⚠️  Some old backups could not be deleted"
               echo "✅ Old backups cleaned"
             fi
             
