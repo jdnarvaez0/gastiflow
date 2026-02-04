@@ -42,11 +42,25 @@ export default defineNuxtConfig({
 
   nitro: {
     routeRules: {
-      '/api/**': {
-        proxy: {
-          to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/**'
-        }
-      }
+      // Backend Proxies - Granular to avoid catching /api/_nuxt_icon
+      '/api/register': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/register' } },
+      '/api/login': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/login' } },
+      '/api/me': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/me' } },
+      '/api/refresh': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/refresh' } },
+      '/api/logout': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/logout' } },
+      '/api/settings': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/settings' } },
+      '/api/verify-email': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/verify-email' } },
+      '/api/resend-verification': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/resend-verification' } },
+      '/api/email-status': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/email-status' } },
+      '/api/profile-picture': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/profile-picture' } },
+      '/api/expenses': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/expenses' } },
+      '/api/expenses/**': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/expenses/**' } },
+      '/api/dashboard': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/dashboard' } },
+      '/api/health': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/health' } },
+      '/api/telegram/**': { proxy: { to: (process.env.NUXT_API_URL || 'http://localhost:8000') + '/api/telegram/**' } },
+
+      // Icon Cache
+      '/api/_nuxt_icon/**': { cache: { maxAge: 1728000 } }
     }
   }
 })

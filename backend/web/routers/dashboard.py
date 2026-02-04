@@ -26,9 +26,9 @@ def dashboard(request: Request, db: DatabaseService = Depends(get_db_service)):
     current_month = now.month
 
     # Fetch data (legacy - not user-specific)
-    monthly_stats = db.get_monthly_stats(current_year, current_month)
-    category_stats = db.get_category_stats(current_year, current_month)
-    history_stats = db.get_six_month_history()
+    monthly_stats = db.get_monthly_stats("web_user", current_year, current_month)
+    category_stats = db.get_category_stats("web_user", current_year, current_month)
+    history_stats = db.get_six_month_history("web_user")
     recent_expenses = db.get_all_expenses(limit=5)
     
     return templates.TemplateResponse(

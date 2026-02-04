@@ -1,25 +1,38 @@
 <template>
-  <div>
-    <!-- Topbar -->
-    <div class="flex justify-between items-center mb-6">
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $t('dashboard.title') }}</div>
-        <div class="flex items-center gap-4">
-            <LanguageSwitcher />
-            <button @click="toggleTheme" class="p-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
-                <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'" class="text-xl"></i>
-            </button>
-            <button @click="showAddModal = true" class="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i> {{ $t('dashboard.newMovement') }}
-            </button>
-            <button class="p-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
-                <i class="fa-regular fa-bell text-xl"></i>
-            </button>
-            <UserAvatar 
-                :image-url="user?.profile_picture_url" 
-                :name="user?.full_name || user?.username"
-                :username="user?.username"
-                size="sm"
-            />
+  <div class="w-full max-w-full overflow-x-hidden">
+    <!-- Topbar - Responsive -->
+    <div class="flex flex-col gap-4 mb-6">
+        <!-- Main row: Title and primary action -->
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{{ $t('dashboard.title') }}</h1>
+            
+            <!-- Actions row -->
+            <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+                <!-- Secondary controls - hidden on very small screens, shown in a compact way -->
+                <div class="flex items-center gap-1 sm:gap-2">
+                    <LanguageSwitcher />
+                    <button @click="toggleTheme" class="p-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
+                        <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'" class="text-lg sm:text-xl"></i>
+                    </button>
+                    <button class="p-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors hidden sm:block">
+                        <i class="fa-regular fa-bell text-xl"></i>
+                    </button>
+                    <div class="hidden sm:block">
+                        <UserAvatar 
+                            :image-url="user?.profile_picture_url" 
+                            :name="user?.full_name || user?.username"
+                            :username="user?.username"
+                            size="sm"
+                        />
+                    </div>
+                </div>
+                
+                <!-- Primary action button -->
+                <button @click="showAddModal = true" class="px-3 sm:px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors flex items-center gap-2 text-sm sm:text-base whitespace-nowrap shrink-0">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="hidden xs:inline">{{ $t('dashboard.newMovement') }}</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -35,115 +48,154 @@
 
     <div v-else>
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <!-- Balance Total -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div class="flex justify-between items-start mb-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-start mb-3 sm:mb-4">
                     <span class="text-sm text-gray-500 dark:text-gray-400">{{ $t('dashboard.balance') }}</span>
                     <i class="fa-solid fa-wallet text-primary"></i>
                 </div>
-                <div class="text-2xl font-bold text-gray-900 dark:text-white mb-2">${{ formatNumber(data?.stats?.balance) }}</div>
+                <div class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">${{ formatNumber(data?.stats?.balance) }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('dashboard.updatedNow') }}</div>
             </div>
 
             <!-- Ingresos -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div class="flex justify-between items-start mb-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-start mb-3 sm:mb-4">
                     <span class="text-sm text-gray-500 dark:text-gray-400">{{ $t('dashboard.incomeThisMonth') }}</span>
                     <i class="fa-solid fa-arrow-up text-success"></i>
                 </div>
-                <div class="text-2xl font-bold text-success mb-2">${{ formatNumber(data?.stats?.income) }}</div>
+                <div class="text-xl sm:text-2xl font-bold text-success mb-2">${{ formatNumber(data?.stats?.income) }}</div>
                 <div class="text-xs text-success flex items-center gap-1">
                     <i class="fa-solid fa-arrow-trend-up"></i> +15.2% {{ $t('dashboard.vsLastMonth') }}
                 </div>
             </div>
 
             <!-- Gastos -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div class="flex justify-between items-start mb-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-start mb-3 sm:mb-4">
                     <span class="text-sm text-gray-500 dark:text-gray-400">{{ $t('dashboard.expensesThisMonth') }}</span>
                     <i class="fa-solid fa-arrow-down text-danger"></i>
                 </div>
-                <div class="text-2xl font-bold text-danger mb-2">${{ formatNumber(data?.stats?.expenses) }}</div>
+                <div class="text-xl sm:text-2xl font-bold text-danger mb-2">${{ formatNumber(data?.stats?.expenses) }}</div>
                 <div class="text-xs text-danger flex items-center gap-1">
                     <i class="fa-solid fa-arrow-trend-down"></i> +5.1% {{ $t('dashboard.vsLastMonth') }}
                 </div>
             </div>
 
             <!-- Ahorro -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div class="flex justify-between items-start mb-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-start mb-3 sm:mb-4">
                     <span class="text-sm text-gray-500 dark:text-gray-400">{{ $t('dashboard.savingsThisMonth') }}</span>
                     <i class="fa-solid fa-piggy-bank text-primary"></i>
                 </div>
-                <div class="text-2xl font-bold text-primary mb-2">${{ formatNumber(data?.stats?.savings) }}</div>
+                <div class="text-xl sm:text-2xl font-bold text-primary mb-2">${{ formatNumber(data?.stats?.savings) }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('dashboard.objective') }}: $2,000,000.00</div>
             </div>
         </div>
 
         <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <!-- Main Chart -->
-            <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-semibold text-gray-900 dark:text-white">{{ $t('dashboard.expensesSummary') }}</h3>
+            <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+                    <h3 class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{{ $t('dashboard.expensesSummary') }}</h3>
                     <div class="flex gap-2">
-                        <button class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300">{{ $t('dashboard.thisMonth') }}</button>
-                        <button class="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">{{ $t('dashboard.last6Months') }}</button>
+                        <button class="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs sm:text-sm text-gray-700 dark:text-gray-300">{{ $t('dashboard.thisMonth') }}</button>
+                        <button class="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors hidden xs:block">{{ $t('dashboard.last6Months') }}</button>
                     </div>
                 </div>
-                <div class="relative h-72">
+                <div class="relative h-48 sm:h-72">
                     <canvas id="mainChart"></canvas>
                 </div>
             </div>
 
             <!-- Categories -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <h3 class="font-semibold text-gray-900 dark:text-white mb-4">{{ $t('dashboard.categories') }}</h3>
-                <div class="space-y-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 text-sm sm:text-base">{{ $t('dashboard.categories') }}</h3>
+                <div class="space-y-3 sm:space-y-4">
                     <div v-for="cat in (data?.categories || []).slice(0, 5)" :key="cat.category" class="flex justify-between items-center">
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2 sm:gap-3">
                             <div class="w-2 h-2 rounded-full bg-primary"></div>
-                            <span class="text-gray-700 dark:text-gray-300">{{ $t('categories.' + cat.category) || cat.category }}</span>
+                            <span class="text-gray-700 dark:text-gray-300 text-sm">{{ $t('categories.' + cat.category) || cat.category }}</span>
                         </div>
-                        <span class="font-semibold text-gray-900 dark:text-white">${{ formatNumber(cat.amount) }}</span>
+                        <span class="font-semibold text-gray-900 dark:text-white text-sm">${{ formatNumber(cat.amount) }}</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Recent Transactions -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-semibold text-gray-900 dark:text-white">{{ $t('dashboard.recentMovements') }}</h3>
-                <a href="#" class="text-primary text-sm hover:underline">{{ $t('dashboard.viewAll') }}</a>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="flex justify-between items-center mb-4 sm:mb-6">
+                <h3 class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{{ $t('dashboard.recentMovements') }}</h3>
+                <NuxtLink to="/movimientos" class="text-primary text-xs sm:text-sm hover:underline">{{ $t('dashboard.viewAll') }}</NuxtLink>
             </div>
-            <div class="overflow-x-auto">
+            
+            <!-- Mobile View: Card List -->
+            <div class="sm:hidden space-y-3">
+                <div 
+                    v-for="expense in (data?.expenses || []).slice(0, 5)" 
+                    :key="expense.id" 
+                    class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30"
+                >
+                    <!-- Icon -->
+                    <div 
+                        class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                        :class="expense.transaction_type == 'expense' ? 'bg-red-100 dark:bg-red-500/20 text-red-500' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-500'"
+                    >
+                        <i :class="['fa-solid', getCategoryIcon(expense.category, expense.transaction_type)]"></i>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-gray-900 dark:text-white text-sm truncate">{{ expense.description }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ expense.category }}</p>
+                    </div>
+                    
+                    <!-- Amount & Date -->
+                    <div class="text-right shrink-0">
+                        <p class="font-bold text-sm" :class="expense.transaction_type == 'expense' ? 'text-red-500' : 'text-emerald-500'">
+                            {{ expense.transaction_type == 'expense' ? '-' : '+' }}${{ formatNumber(expense.amount) }}
+                        </p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500">{{ formatDateShort(expense.date) }}</p>
+                    </div>
+                </div>
+                
+                <!-- Empty State -->
+                <div v-if="!data?.expenses?.length" class="text-center py-6 text-gray-500 dark:text-gray-400">
+                    <i class="fa-solid fa-inbox text-2xl mb-2"></i>
+                    <p class="text-sm">No hay movimientos recientes</p>
+                </div>
+            </div>
+
+            <!-- Desktop View: Table -->
+            <div class="hidden sm:block overflow-x-auto">
                 <table class="w-full">
                     <thead>
                         <tr class="border-b border-gray-200 dark:border-gray-700">
                             <th class="text-left py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('dashboard.description') }}</th>
                             <th class="text-left py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('dashboard.category') }}</th>
-                            <th class="text-left py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('dashboard.date') }}</th>
+                            <th class="text-left py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ $t('dashboard.date') }}</th>
                             <th class="text-right py-3 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('dashboard.amount') }}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="expense in (data?.expenses || [])" :key="expense.id" class="border-b border-gray-100 dark:border-gray-700 last:border-0">
+                        <tr v-for="expense in (data?.expenses || [])" :key="expense.id" class="border-b border-gray-100 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                             <td class="py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl flex items-center justify-center"
-                                        :class="expense.transaction_type == 'expense' ? 'bg-red-100 dark:bg-red-900/20 text-red-600' : 'bg-green-100 dark:bg-green-900/20 text-green-600'">
+                                        :class="expense.transaction_type == 'expense' ? 'bg-red-100 dark:bg-red-500/20 text-red-500' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-500'">
                                         <i :class="['fa-solid', getCategoryIcon(expense.category, expense.transaction_type)]"></i>
                                     </div>
                                     <div>
                                         <div class="font-medium text-gray-900 dark:text-white">{{ expense.description }}</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ expense.transaction_type }}</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 md:hidden">{{ formatDateShort(expense.date) }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-4 text-gray-700 dark:text-gray-300">{{ expense.category }}</td>
-                            <td class="py-4 text-gray-700 dark:text-gray-300">{{ formatDate(expense.date) }}</td>
+                            <td class="py-4 text-gray-700 dark:text-gray-300 text-sm">{{ expense.category }}</td>
+                            <td class="py-4 text-gray-700 dark:text-gray-300 text-sm hidden md:table-cell">{{ formatDate(expense.date) }}</td>
                             <td class="py-4 text-right font-semibold" :class="expense.transaction_type == 'expense' ? 'text-danger' : 'text-success'">
                                 {{ expense.transaction_type == 'expense' ? '-' : '+' }}${{ formatNumber(expense.amount) }}
                             </td>
@@ -270,10 +322,14 @@ onMounted(async () => {
     }
     
     startPolling()
+    
+    // Listen for transaction saved from bottom nav
+    window.addEventListener('transaction-saved', refreshData)
 })
 
 onUnmounted(() => {
     stopPolling()
+    window.removeEventListener('transaction-saved', refreshData)
 })
 
 const formatNumber = (num) => {
@@ -282,6 +338,14 @@ const formatNumber = (num) => {
 
 const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString()
+}
+
+// Short date format for mobile (e.g., "30/12")
+const formatDateShort = (dateString) => {
+    const date = new Date(dateString)
+    const day = date.getDate()
+    const month = date.getMonth() + 1
+    return `${day}/${month}`
 }
 
 const getCategoryIcon = (category, type) => {

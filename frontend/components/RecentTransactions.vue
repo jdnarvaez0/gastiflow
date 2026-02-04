@@ -3,7 +3,7 @@
     <template #header>
       <div class="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800">
         <h3 class="text-lg font-bold text-gray-900 dark:text-white">Movimientos Recientes</h3>
-        <UButton variant="link" color="primary" class="text-sm font-medium hover:text-primary-600 p-0">Ver Todos</UButton>
+        <UButton to="/movimientos" variant="link" color="primary" class="text-sm font-medium hover:text-primary-600 p-0">Ver Todos</UButton>
       </div>
     </template>
     

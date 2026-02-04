@@ -29,10 +29,10 @@
                         to="/login"
                         icon="i-heroicons-arrow-right-start-on-rectangle"
                         label="Iniciar sesión"
-                        variant="outline"
-                        color="neutral"
+                        variant="ghost"
+                        color="gray"
                         size="xl"
-                        class="border-gray-600 text-white rounded-xl font-semibold hover:bg-white/5 hover:border-accent transition-all"
+                        class="ring-1 ring-gray-600 text-white rounded-xl font-semibold hover:bg-white/5 hover:ring-accent transition-all"
                     />
                 </div>
                 <div class="flex items-center gap-8 lg:justify-start justify-center">

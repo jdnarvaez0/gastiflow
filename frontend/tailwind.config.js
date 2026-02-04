@@ -2,6 +2,14 @@
 export default {
     darkMode: 'class',
     theme: {
+        screens: {
+            'xs': '480px',
+            'sm': '640px',
+            'md': '768px',
+            'lg': '1024px',
+            'xl': '1280px',
+            '2xl': '1536px',
+        },
         extend: {
             colors: {
                 // Primary colors
@@ -24,10 +32,12 @@ export default {
                     DEFAULT: '#FF754C',
                     light: '#FFEBE4',
                 },
-                // Surface colors (light mode)
+                // Surface colors
                 surface: {
                     light: '#f3f4f6',
                     card: '#ffffff',
+                    cardDark: '#1f2937', // gray-800
+                    dark: '#111827', // gray-900
                 },
                 // Landing page specific (always dark)
                 landing: {

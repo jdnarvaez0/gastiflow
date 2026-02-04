@@ -1,15 +1,18 @@
 <template>
   <button 
     @click="toggleLocale" 
-    class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 hover:border-accent/50 hover:bg-white/5 transition-all group"
+    class="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-white/10 dark:hover:bg-gray-700/50 transition-all group"
     :title="$t('settings.preferences.language')"
   >
-    <div class="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 text-[10px] font-bold group-hover:bg-accent/20 group-hover:text-accent transition-colors">
-      {{ nextLocale.toUpperCase() }}
-    </div>
-    <span class="text-xs font-semibold tracking-wider text-gray-300 group-hover:text-white uppercase">
-      {{ locale }}
-    </span>
+    <span 
+      class="text-xs font-bold tracking-wider uppercase transition-colors"
+      :class="locale === 'en' ? 'text-accent' : 'text-gray-400 dark:text-gray-500'"
+    >EN</span>
+    <span class="text-gray-500 text-xs">/</span>
+    <span 
+      class="text-xs font-bold tracking-wider uppercase transition-colors"
+      :class="locale === 'es' ? 'text-accent' : 'text-gray-400 dark:text-gray-500'"
+    >ES</span>
   </button>
 </template>
 

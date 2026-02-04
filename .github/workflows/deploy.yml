@@ -40,6 +40,17 @@ jobs:
             BACKUP_DIR=~/gastiflow_backups/$(date +%Y%m%d_%H%M%S)
             mkdir -p $BACKUP_DIR
             cp -r backend $BACKUP_DIR/ || echo "⚠️  Backup failed, continuing..."
+
+            # Rotate backups (keep last 5)
+            echo "🧹 Cleaning up old backups..."
+            # List all backups by time, keep top 5, delete rest
+            # Check if directory exists first
+            if [ -d ~/gastiflow_backups ]; then
+              cd ~/gastiflow_backups
+              # List directories by time (newest first), skip first 5, delete the rest
+              ls -dt * | tail -n +6 | xargs -r rm -rf
+              echo "✅ Old backups cleaned"
+            fi
             
             # Pull latest changes
             echo "📥 Pulling latest changes from main..."

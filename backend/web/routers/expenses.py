@@ -57,6 +57,18 @@ def api_dashboard(
     }
 
 
+@router.get("/expenses")
+def api_get_expenses(
+    limit: int = 100,
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """Get user expenses history"""
+    user_id = str(user.id)
+    expenses = db.get_user_expenses(user_id, limit=limit)
+    return expenses
+
+
 @router.post("/expenses")
 def api_add_expense(
     expense: ExpenseCreate,
