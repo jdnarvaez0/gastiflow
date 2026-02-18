@@ -3,12 +3,13 @@ Expenses router for Gastiflow Web API.
 Handles expense CRUD operations and dashboard data.
 """
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from ..dependencies import get_db_service, get_current_user, require_auth
 from services.database_service import DatabaseService
-from models.expense import ExpenseSchema
+from models.expense import ExpenseSchema, ExpenseResponse, PaginatedResponse
 
 router = APIRouter(prefix="/api", tags=["Expenses"])
 
@@ -57,13 +58,82 @@ def api_dashboard(
     }
 
 
-@router.get("/expenses")
+@router.get("/expenses", response_model=PaginatedResponse[ExpenseResponse])
 def api_get_expenses(
-    limit: int = 100,
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    per_page: int = Query(20, ge=1, le=100, description="Items per page (max 100)"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+    transaction_type: Optional[str] = Query(None, description="Filter by type: expense or income"),
+    start_date: Optional[str] = Query(None, description="Filter from date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="Filter to date (YYYY-MM-DD)"),
     user = Depends(require_auth),
     db: DatabaseService = Depends(get_db_service)
 ):
-    """Get user expenses history"""
+    """
+    Get user expenses with pagination and optional filters.
+    
+    - **page**: Page number (starts at 1)
+    - **per_page**: Number of items per page (1-100, default 20)
+    - **category**: Filter by category name
+    - **transaction_type**: Filter by 'expense' or 'income'
+    - **start_date**: Filter expenses from this date (YYYY-MM-DD)
+    - **end_date**: Filter expenses until this date (YYYY-MM-DD)
+    """
+    user_id = str(user.id)
+    
+    # Parse dates if provided
+    parsed_start = None
+    parsed_end = None
+    
+    if start_date:
+        try:
+            parsed_start = datetime.strptime(start_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid start_date format. Use YYYY-MM-DD")
+    
+    if end_date:
+        try:
+            parsed_end = datetime.strptime(end_date, "%Y-%m-%d")
+            # Set to end of day
+            parsed_end = parsed_end.replace(hour=23, minute=59, second=59)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid end_date format. Use YYYY-MM-DD")
+    
+    # Get paginated results
+    result = db.get_user_expenses_paginated(
+        user_id=user_id,
+        page=page,
+        per_page=per_page,
+        category=category,
+        transaction_type=transaction_type,
+        start_date=parsed_start,
+        end_date=parsed_end
+    )
+    
+    # Convert SQLAlchemy objects to Pydantic models
+    expense_responses = [
+        ExpenseResponse.model_validate(expense) for expense in result["items"]
+    ]
+    
+    return PaginatedResponse[ExpenseResponse](
+        items=expense_responses,
+        total=result["total"],
+        page=result["page"],
+        per_page=result["per_page"],
+        total_pages=result["total_pages"],
+        has_next=result["has_next"],
+        has_prev=result["has_prev"]
+    )
+
+
+# Legacy endpoint for backward compatibility (returns all expenses)
+@router.get("/expenses/all")
+def api_get_all_expenses(
+    limit: int = Query(100, ge=1, le=500),
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """Get all user expenses (limited) - for backward compatibility"""
     user_id = str(user.id)
     expenses = db.get_user_expenses(user_id, limit=limit)
     return expenses
@@ -99,3 +169,29 @@ def api_add_expense(
         raise HTTPException(status_code=400, detail=f"Invalid data: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+
+@router.delete("/expenses/{expense_id}")
+def api_delete_expense(
+    expense_id: int,
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """Delete an expense by ID"""
+    user_id = str(user.id)
+    
+    # Get expense to verify ownership
+    expense = db.get_expense_by_id(expense_id)
+    
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    if str(expense.user_id) != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this expense")
+    
+    success = db.delete_expense(expense_id)
+    
+    if success:
+        return {"message": "Expense deleted successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to delete expense")

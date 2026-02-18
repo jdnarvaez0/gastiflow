@@ -1,11 +1,13 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime
 from sqlalchemy.orm import declarative_base
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_validator
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List, Generic, TypeVar
 import enum
 
 Base = declarative_base()
+
+T = TypeVar('T')
 
 
 class TransactionType(str, enum.Enum):
@@ -86,3 +88,35 @@ class ExpenseSchema(BaseModel):
 🏷️ Categoría: {self.category}
 📅 Fecha: {self.date.isoformat()}
 📊 Tipo: {type_text} ({self.transaction_type})"""
+
+
+# Modelo de respuesta para API
+class ExpenseResponse(BaseModel):
+    """Response model for expense data"""
+    id: int
+    user_id: str
+    description: str
+    amount: float
+    currency: str
+    category: str
+    transaction_type: str
+    date: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Modelo de respuesta paginada genérico
+class PaginatedResponse(BaseModel, Generic[T]):
+    """Generic paginated response model"""
+    items: List[T]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+    has_next: bool
+    has_prev: bool
+
+    class Config:
+        from_attributes = True

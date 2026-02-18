@@ -78,6 +78,88 @@ class DatabaseService:
         finally:
             session.close()
 
+    def get_user_expenses_paginated(
+        self, 
+        user_id: str, 
+        page: int = 1, 
+        per_page: int = 20,
+        category: str = None,
+        transaction_type: str = None,
+        start_date: datetime = None,
+        end_date: datetime = None
+    ) -> dict:
+        """
+        Obtiene los gastos de un usuario con paginación y filtros opcionales
+        
+        Args:
+            user_id: ID del usuario
+            page: Número de página (1-based)
+            per_page: Items por página
+            category: Filtrar por categoría (opcional)
+            transaction_type: Filtrar por tipo (expense/income)
+            start_date: Fecha inicial (opcional)
+            end_date: Fecha final (opcional)
+            
+        Returns:
+            dict con items, total, page, per_page, total_pages, has_next, has_prev
+        """
+        session = self.get_session()
+        try:
+            from sqlalchemy import func
+            
+            # Query base
+            query = session.query(ExpenseDB).filter(ExpenseDB.user_id == user_id)
+            
+            # Aplicar filtros
+            if category:
+                query = query.filter(ExpenseDB.category == category)
+            if transaction_type:
+                query = query.filter(ExpenseDB.transaction_type == transaction_type)
+            if start_date:
+                query = query.filter(ExpenseDB.date >= start_date)
+            if end_date:
+                query = query.filter(ExpenseDB.date <= end_date)
+            
+            # Contar total
+            total = query.count()
+            
+            # Calcular offset y total de páginas
+            offset = (page - 1) * per_page
+            total_pages = (total + per_page - 1) // per_page  # Ceiling division
+            
+            # Obtener items paginados
+            expenses = (
+                query
+                .order_by(ExpenseDB.date.desc())
+                .offset(offset)
+                .limit(per_page)
+                .all()
+            )
+            
+            return {
+                "items": expenses,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+
+        except Exception as e:
+            logger.error(f"Error obteniendo gastos paginados: {e}")
+            return {
+                "items": [],
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": 0,
+                "has_next": False,
+                "has_prev": False
+            }
+        finally:
+            session.close()
+
     def get_all_expenses(self, limit: int = 50) -> List[ExpenseDB]:
         """
         Obtiene los últimos gastos de todos los usuarios
