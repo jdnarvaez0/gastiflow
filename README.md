@@ -33,26 +33,38 @@
 ### Prerequisites
 
 - Python 3.10+ and Node.js 18+
-- PostgreSQL database
+- PostgreSQL database (or Docker)
 - [Gemini API Key](https://aistudio.google.com/app/apikey)
 - [Telegram Bot Token](https://t.me/botfather)
 
-### Setup
+### Option 1: Automated Setup (Recommended)
 
-1. **Clone and configure**
 ```bash
+# Clone repository
 git clone https://github.com/jdnarvaez0/gastiflow.git
 cd gastiflow
-cp backend/.env.example backend/.env
-# Edit backend/.env with your credentials
+
+# Run setup script (Windows)
+.\setup.ps1
+
+# Or using Task (cross-platform)
+# Install Task: https://taskfile.dev/installation/
+task setup
 ```
 
-2. **Install dependencies**
+### Option 2: Manual Setup
+
 ```bash
+# Clone and configure
+git clone https://github.com/jdnarvaez0/gastiflow.git
+cd gastiflow
+cp .env.example .env
+# Edit .env with your credentials
+
 # Backend
 cd backend
 python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 # Frontend
@@ -60,26 +72,35 @@ cd ../frontend
 npm install
 ```
 
-3. **Run services**
+### Running the Application
+
 ```bash
-# Option A: Automated (Windows)
-.\start-app.ps1
+# Using Task (recommended)
+task dev              # Start all services
+task dev:api          # API only
+task dev:bot          # Telegram bot only
+task dev:frontend     # Frontend only
 
-# Option B: Manual
-# Terminal 1 - API
+# Using Docker
+docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+
+# Manual (separate terminals)
 cd backend && uvicorn web.main:app --reload --port 8000
-
-# Terminal 2 - Telegram Bot
 cd backend && python run_bot.py
-
-# Terminal 3 - Frontend
 cd frontend && npm run dev
 ```
 
-**Access:**
-- Frontend: http://localhost:3000
-- API Docs: http://localhost:8000/docs
-- Health Check: http://localhost:8000/api/health
+**Access Points:**
+- 🌐 Frontend: http://localhost:3000
+- 📚 API Docs: http://localhost:8000/docs
+- 🏥 Health: http://localhost:8000/api/health
+
+**Verify everything is running:**
+```bash
+.\health-check.ps1    # Windows
+# or
+task health           # Using Task
+```
 
 ## 📁 Project Structure
 
@@ -87,25 +108,67 @@ cd frontend && npm run dev
 gastiflow/
 ├── backend/
 │   ├── web/
-│   │   ├── main.py           # FastAPI app (115 lines)
+│   │   ├── main.py           # FastAPI app
 │   │   ├── config.py         # Environment config
 │   │   ├── dependencies.py   # Auth & DB dependencies
 │   │   ├── middleware.py     # CORS, security, rate limiting
 │   │   └── routers/          # Modular API endpoints
 │   │       ├── auth.py       # Authentication
-│   │       ├── expenses.py   # Expense management
+│   │       ├── expenses.py   # Expense management (paginated)
+│   │       ├── budgets.py    # Budget management (new!)
 │   │       ├── profile.py    # Profile & settings
 │   │       ├── telegram.py   # Telegram linking
 │   │       └── health.py     # System monitoring
 │   ├── bot/                  # Telegram bot handlers
-│   ├── services/             # Business logic (Auth, AI, DB, Email)
+│   ├── services/             # Business logic
 │   ├── models/               # SQLAlchemy models
 │   └── migrations/           # Database migrations
 ├── frontend/
-│   ├── pages/                # Routes (login, dashboard, settings)
+│   ├── pages/                # Routes
 │   ├── components/           # Vue components
-│   └── composables/          # Reusable logic (auth, API)
-└── .env.example              # Environment template
+│   └── composables/          # Reusable logic
+├── .github/workflows/        # CI/CD
+├── docker-compose.override.yml  # Dev services
+├── Taskfile.yml             # Task commands
+└── setup.ps1                # Windows setup script
+```
+
+## 🛠️ Development Commands
+
+### Using Task (Recommended)
+
+```bash
+# Development
+task dev              # Start all services
+task dev:api          # API server only
+task dev:bot          # Telegram bot only
+task dev:frontend     # Frontend only
+
+# Testing
+task test             # Run all tests
+task test:backend     # Backend tests
+task test:integration # Telegram integration tests
+
+# Docker
+task docker:up        # Start services
+task docker:down      # Stop services
+task docker:logs      # View logs
+
+# Utilities
+task env:check        # Verify configuration
+task db:clean         # Clean expired tokens
+task clean            # Clean cache files
+task --list-all       # Show all commands
+```
+
+### Using Make
+
+```bash
+make setup         # Setup environment
+make dev           # Start all services
+make test          # Run tests
+make docker-up     # Start with Docker
+make help          # Show all commands
 ```
 
 ## 🐳 Docker

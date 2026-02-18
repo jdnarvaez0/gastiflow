@@ -52,3 +52,26 @@ start-app.ps1
 # agents
 .agents/
 .agent/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Coverage
+.coverage
+htmlcov/
+
+# Local dev scripts
+*.local
+*.local.sh
+*.local.ps1
+
+# Taskfile
+.task/
+.taskfile.yml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
