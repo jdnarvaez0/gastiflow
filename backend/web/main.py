@@ -25,6 +25,7 @@ from .routers import (
     profile_router,
     telegram_router,
     dashboard_router,
+    budgets_router,
 )
 
 # Initialize FastAPI app
@@ -106,6 +107,9 @@ app.include_router(profile_router)
 
 # Telegram linking routes (/api/telegram/*)
 app.include_router(telegram_router)
+
+# Budget management routes (/api/budgets/*)
+app.include_router(budgets_router)
 
 # Legacy HTML dashboard routes (/, /add)
 app.include_router(dashboard_router)

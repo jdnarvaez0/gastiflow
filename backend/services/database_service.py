@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from models.expense import Base, ExpenseDB, ExpenseSchema
 from models.user import UserDB, RefreshTokenDB
 from models.telegram_link_code import TelegramLinkCodeDB
+from models.budget import BudgetDB
 from typing import List, Optional
 from loguru import logger
 import hashlib
@@ -1023,4 +1024,256 @@ class DatabaseService:
         finally:
             session.close()
 
+    # ==================== BUDGET MANAGEMENT ====================
 
+    def create_budget(self, user_id: str, category: str, amount: float, alert_threshold: float = 0.8) -> Optional[BudgetDB]:
+        """
+        Create a new budget for a user
+        
+        Args:
+            user_id: User ID
+            category: Category name
+            amount: Monthly budget amount
+            alert_threshold: Percentage at which to trigger alert (0.0 - 1.0)
+            
+        Returns:
+            BudgetDB object if successful, None otherwise
+        """
+        session = self.get_session()
+        try:
+            # Check if budget already exists for this category
+            existing = session.query(BudgetDB).filter(
+                BudgetDB.user_id == user_id,
+                BudgetDB.category == category,
+                BudgetDB.is_active == True
+            ).first()
+            
+            if existing:
+                logger.warning(f"Budget already exists for user {user_id}, category {category}")
+                return None
+            
+            budget = BudgetDB(
+                user_id=user_id,
+                category=category,
+                amount=amount,
+                alert_threshold=alert_threshold,
+                is_active=True
+            )
+            session.add(budget)
+            session.commit()
+            session.refresh(budget)
+            logger.info(f"Budget created: ID={budget.id}, User={user_id}, Category={category}")
+            return budget
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error creating budget: {e}")
+            return None
+        finally:
+            session.close()
+
+    def get_user_budgets(self, user_id: str) -> List[BudgetDB]:
+        """
+        Get all active budgets for a user
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            List of BudgetDB objects
+        """
+        session = self.get_session()
+        try:
+            budgets = session.query(BudgetDB).filter(
+                BudgetDB.user_id == user_id,
+                BudgetDB.is_active == True
+            ).all()
+            return budgets
+        except Exception as e:
+            logger.error(f"Error getting user budgets: {e}")
+            return []
+        finally:
+            session.close()
+
+    def get_budget_by_id(self, budget_id: int) -> Optional[BudgetDB]:
+        """
+        Get budget by ID
+        
+        Args:
+            budget_id: Budget ID
+            
+        Returns:
+            BudgetDB object if found, None otherwise
+        """
+        session = self.get_session()
+        try:
+            budget = session.query(BudgetDB).filter(BudgetDB.id == budget_id).first()
+            return budget
+        except Exception as e:
+            logger.error(f"Error getting budget: {e}")
+            return None
+        finally:
+            session.close()
+
+    def update_budget(self, budget_id: int, **kwargs) -> Optional[BudgetDB]:
+        """
+        Update budget fields
+        
+        Args:
+            budget_id: Budget ID
+            **kwargs: Fields to update (amount, alert_threshold, is_active)
+            
+        Returns:
+            Updated BudgetDB object if successful, None otherwise
+        """
+        session = self.get_session()
+        try:
+            budget = session.query(BudgetDB).filter(BudgetDB.id == budget_id).first()
+            if budget:
+                for key, value in kwargs.items():
+                    if hasattr(budget, key) and value is not None:
+                        setattr(budget, key, value)
+                budget.updated_at = datetime.utcnow()
+                session.commit()
+                session.refresh(budget)
+                logger.info(f"Budget updated: ID={budget_id}")
+            return budget
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error updating budget: {e}")
+            return None
+        finally:
+            session.close()
+
+    def delete_budget(self, budget_id: int) -> bool:
+        """
+        Soft delete a budget (mark as inactive)
+        
+        Args:
+            budget_id: Budget ID
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            budget = session.query(BudgetDB).filter(BudgetDB.id == budget_id).first()
+            if budget:
+                budget.is_active = False
+                budget.updated_at = datetime.utcnow()
+                session.commit()
+                logger.info(f"Budget deleted: ID={budget_id}")
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error deleting budget: {e}")
+            return False
+        finally:
+            session.close()
+
+    def get_budget_progress(self, user_id: str, year: int = None, month: int = None) -> List[dict]:
+        """
+        Get budget progress for all user budgets with current month spending
+        
+        Args:
+            user_id: User ID
+            year: Year to check (default: current year)
+            month: Month to check (default: current month)
+            
+        Returns:
+            List of dicts with budget info and spending progress
+        """
+        from sqlalchemy import func, extract, and_
+        from calendar import monthrange
+        
+        session = self.get_session()
+        try:
+            now = datetime.now()
+            year = year or now.year
+            month = month or now.month
+            
+            # Get days in month for calculating days remaining
+            _, days_in_month = monthrange(year, month)
+            days_remaining = days_in_month - now.day
+            
+            # Get all active budgets for user
+            budgets = session.query(BudgetDB).filter(
+                BudgetDB.user_id == user_id,
+                BudgetDB.is_active == True
+            ).all()
+            
+            results = []
+            
+            for budget in budgets:
+                # Get spending for this category in the specified month
+                month_filter = and_(
+                    ExpenseDB.user_id == user_id,
+                    ExpenseDB.category == budget.category,
+                    ExpenseDB.transaction_type == "expense",
+                    extract('year', ExpenseDB.date) == year,
+                    extract('month', ExpenseDB.date) == month
+                )
+                
+                spent = (
+                    session.query(func.sum(ExpenseDB.amount))
+                    .filter(month_filter)
+                    .scalar()
+                    or 0
+                )
+                
+                percentage_used = (spent / budget.amount) if budget.amount > 0 else 0
+                alert_triggered = percentage_used >= budget.alert_threshold
+                
+                results.append({
+                    "id": budget.id,
+                    "category": budget.category,
+                    "budget_amount": budget.amount,
+                    "alert_threshold": budget.alert_threshold,
+                    "spent": float(spent),
+                    "remaining": float(budget.amount - spent),
+                    "percentage_used": round(percentage_used * 100, 2),
+                    "alert_triggered": alert_triggered,
+                    "days_remaining": days_remaining
+                })
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error getting budget progress: {e}")
+            return []
+        finally:
+            session.close()
+
+    def get_budget_alerts(self, user_id: str) -> List[dict]:
+        """
+        Get active budget alerts for a user
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            List of budget alerts that have triggered
+        """
+        progress = self.get_budget_progress(user_id)
+        alerts = []
+        
+        for p in progress:
+            if p["alert_triggered"]:
+                if p["percentage_used"] >= 100:
+                    severity = "danger"
+                    message = f"⚠️ Has excedido tu presupuesto de {p['category']}: {p['percentage_used']:.0f}% usado"
+                else:
+                    severity = "warning"
+                    message = f"📊 Estás cerca de tu límite en {p['category']}: {p['percentage_used']:.0f}% usado"
+                
+                alerts.append({
+                    "budget_id": p["id"],
+                    "category": p["category"],
+                    "budget_amount": p["budget_amount"],
+                    "spent": p["spent"],
+                    "percentage_used": p["percentage_used"],
+                    "message": message,
+                    "severity": severity
+                })
+        
+        return alerts

@@ -8,6 +8,7 @@ from .expenses import router as expenses_router
 from .profile import router as profile_router
 from .telegram import router as telegram_router
 from .dashboard import router as dashboard_router
+from .budgets import router as budgets_router
 
 __all__ = [
     "health_router",
@@ -17,4 +18,5 @@ __all__ = [
     "profile_router",
     "telegram_router",
     "dashboard_router",
+    "budgets_router",
 ]
