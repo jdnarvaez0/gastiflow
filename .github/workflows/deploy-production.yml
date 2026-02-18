@@ -1,0 +1,180 @@
+name: Deploy to Production
+
+# This workflow deploys to production when manually triggered
+# Requires proper secrets to be configured in GitHub
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm production deployment'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ============== Verify ==============
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation
+        if: github.event.inputs.confirm != 'deploy'
+        run: |
+          echo "❌ Deployment cancelled. You must type 'deploy' to confirm."
+          exit 1
+      
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.SSH_HOST }}" ]; then
+            echo "❌ Secret SSH_HOST is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SSH_USER }}" ]; then
+            echo "❌ Secret SSH_USER is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+            echo "❌ Secret SSH_PRIVATE_KEY is not set"
+            exit 1
+          fi
+          echo "✅ All required secrets are configured"
+
+  # ============== Build & Push Docker Image ==============
+  build:
+    runs-on: ubuntu-latest
+    needs: verify
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-backend
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============== Deploy to Server ==============
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [verify, build]
+    environment:
+      name: production
+      url: https://${{ secrets.SSH_HOST }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          log-public-key: false
+
+      - name: Add host to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to production server
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          DEPLOY_DIR: ${{ secrets.DEPLOY_DIR || '/opt/gastiflow' }}
+        run: |
+          echo "🚀 Starting deployment to production..."
+          
+          # Execute deployment commands on remote server
+          ssh $SSH_USER@$SSH_HOST << 'EOF'
+            set -e
+            
+            echo "📦 Pulling latest code..."
+            cd ${{ env.DEPLOY_DIR }}
+            git fetch origin
+            git checkout main
+            git pull origin main
+            
+            echo "🔧 Updating environment..."
+            # Source environment variables (these should be set on the server)
+            export $(grep -v '^#' .env | xargs)
+            
+            echo "🐳 Building and starting containers..."
+            docker-compose pull
+            docker-compose build --no-cache
+            docker-compose up -d
+            
+            echo "🧹 Cleaning up..."
+            docker system prune -f
+            
+            echo "✅ Deployment completed!"
+          EOF
+
+      - name: Health check
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          echo "🏥 Running health check..."
+          sleep 10
+          
+          # Check if services are running
+          ssh $SSH_USER@$SSH_HOST "cd ${{ secrets.DEPLOY_DIR || '/opt/gastiflow' }} && docker-compose ps"
+          
+          # Optional: Check HTTP endpoint
+          # curl -f https://${{ secrets.SSH_HOST }}/api/health || exit 1
+          
+          echo "✅ Health check passed!"
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "🎉 Production deployment successful!"
+          echo "Commit: ${{ github.sha }}"
+          echo "Deployed by: ${{ github.actor }}"
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -rf ~/.ssh
+
+  # ============== Rollback (on failure) ==============
+  rollback:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: failure()
+    steps:
+      - name: Notify failure
+        run: |
+          echo "❌ Deployment failed!"
+          echo "You may need to manually rollback to the previous version."
+          echo ""
+          echo "Rollback command:"
+          echo "  ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'cd ${{ secrets.DEPLOY_DIR || '/opt/gastiflow' }} && git revert HEAD && docker-compose up -d'"

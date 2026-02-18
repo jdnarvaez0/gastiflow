@@ -183,21 +183,52 @@ task docker:logs
 
 ## 🔄 CI/CD Pipeline
 
-**Automated Workflow:**
+**Continuous Integration (Automated):**
 
-| Trigger | Tests | Build | Deploy |
+| Trigger | Tests | Build | Docker |
 |---------|-------|-------|--------|
-| Push to `dev` | ❌ | ❌ | ❌ (manual only) |
-| PR to `dev` | ✅ | ✅ | ❌ |
-| PR to `main` | ✅ | ✅ | ❌ |
-| Push to `main` | ✅ | ✅ | ✅ Production |
-| Manual workflow | ✅ | ✅ | ✅ Staging |
+| PR to `dev` | ✅ | ✅ | ✅ |
+| PR to `main` | ✅ | ✅ | ✅ |
+| Push to `main` | ✅ | ✅ | ✅ |
 
-**Deploy to Staging (Manual):**
+**Deployment (Manual):**
+
+| Environment | Trigger | Command |
+|-------------|---------|---------|
+| Staging | Manual | GitHub Actions → "Deploy to Staging" |
+| Production | Manual | GitHub Actions → "Deploy to Production" |
+
+**Required Secrets:**
+
+Configure these in GitHub → Settings → Secrets and variables → Actions:
+
 ```bash
-# Go to GitHub Actions → Deploy to Staging → Run workflow
-# Select branch: dev
+# For Staging Deployment
+STAGING_SSH_HOST          # Your staging server IP/hostname
+STAGING_SSH_USER          # SSH username
+STAGING_SSH_KEY           # Private SSH key
+STAGING_DEPLOY_DIR        # Deploy directory (default: /opt/gastiflow-staging)
+
+# For Production Deployment  
+SSH_HOST                  # Production server IP/hostname
+SSH_USER                  # SSH username
+SSH_PRIVATE_KEY           # Private SSH key
+DEPLOY_DIR                # Deploy directory (default: /opt/gastiflow)
 ```
+
+**Deploy to Staging:**
+1. Go to GitHub → Actions → "Deploy to Staging"
+2. Click "Run workflow"
+3. Select branch (`dev` or `main`)
+4. Click "Run workflow"
+
+**Deploy to Production:**
+1. Go to GitHub → Actions → "Deploy to Production"
+2. Click "Run workflow"
+3. Type "deploy" to confirm
+4. Click "Run workflow"
+
+⚠️ **Production deploy requires typing "deploy" to prevent accidental deployments.**
 
 ## 🌍 Deployment
 

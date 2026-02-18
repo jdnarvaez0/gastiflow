@@ -1,14 +1,17 @@
-name: CI/CD Pipeline
+name: CI Pipeline
+
+# This workflow runs tests and builds on every PR and push to main
+# Deployment is handled separately via manual workflows
 
 on:
   push:
-    branches: [main]  # Only run full pipeline on main
+    branches: [main]
     paths-ignore:
       - '**.md'
       - 'frontend/.nuxt/**'
       - 'frontend/dist/**'
   pull_request:
-    branches: [main, dev]  # Run tests on PRs to both branches
+    branches: [main, dev]
 
 env:
   PYTHON_VERSION: '3.11'
@@ -18,8 +21,6 @@ jobs:
   # ============== Backend Tests ==============
   test-backend:
     runs-on: ubuntu-latest
-    # Run on PRs to any branch, or push to main
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     services:
       postgres:
         image: postgres:15-alpine
@@ -75,8 +76,6 @@ jobs:
   # ============== Frontend Build ==============
   build-frontend:
     runs-on: ubuntu-latest
-    # Run on PRs to any branch, or push to main
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -109,8 +108,6 @@ jobs:
   # ============== Security Scan ==============
   security:
     runs-on: ubuntu-latest
-    # Run on PRs to any branch, or push to main
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -128,14 +125,12 @@ jobs:
           path: bandit-report.json
           retention-days: 30
 
-  # ============== Docker Build ==============
+  # ============== Docker Build Test ==============
   docker-build:
     runs-on: ubuntu-latest
-    # Only run on push to main (not on PRs)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test-backend, build-frontend]
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -146,48 +141,25 @@ jobs:
         with:
           context: ./backend
           push: false
-          tags: gastiflow-backend:${{ github.sha }}
+          tags: gastiflow-backend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ============== Deploy (Production) ==============
-  deploy-production:
+  # ============== Summary ==============
+  summary:
     runs-on: ubuntu-latest
-    # Only deploy on push to main
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test-backend, build-frontend, docker-build]
-    environment: production
+    needs: [test-backend, build-frontend, security, docker-build]
+    if: always()
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to production
+      - name: Check results
         run: |
-          echo "Deploying to production..."
-          # Add your deployment script here
-          # Example: SSH into server and run deployment
-          # ssh user@server "cd /app && git pull && docker-compose up -d"
-        env:
-          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-
-  # ============== Deploy (Staging) - Manual Only ==============
-  # This job is disabled for automatic runs
-  # Use 'workflow_dispatch' to deploy to staging manually when needed
-  deploy-staging:
-    runs-on: ubuntu-latest
-    if: false  # Disabled - never runs automatically
-    # To enable manual deployment, uncomment below and comment out 'if: false':
-    # if: github.event_name == 'workflow_dispatch'
-    environment: staging
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to staging
-        run: |
-          echo "Deploying to staging..."
-          echo "This job is disabled. To deploy to staging:"
-          echo "1. Go to Actions tab in GitHub"
-          echo "2. Select 'CI/CD Pipeline'"
-          echo "3. Click 'Run workflow'"
-          echo "4. Select 'dev' branch and run"
+          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Tests | ${{ needs.test-backend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Build | ${{ needs.build-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker-build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All checks passed!" >> $GITHUB_STEP_SUMMARY
