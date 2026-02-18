@@ -2,13 +2,13 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]  # Only run full pipeline on main
     paths-ignore:
       - '**.md'
       - 'frontend/.nuxt/**'
       - 'frontend/dist/**'
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev]  # Run tests on PRs to both branches
 
 env:
   PYTHON_VERSION: '3.11'
@@ -18,6 +18,8 @@ jobs:
   # ============== Backend Tests ==============
   test-backend:
     runs-on: ubuntu-latest
+    # Run on PRs to any branch, or push to main
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     services:
       postgres:
         image: postgres:15-alpine
@@ -73,6 +75,8 @@ jobs:
   # ============== Frontend Build ==============
   build-frontend:
     runs-on: ubuntu-latest
+    # Run on PRs to any branch, or push to main
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -105,6 +109,8 @@ jobs:
   # ============== Security Scan ==============
   security:
     runs-on: ubuntu-latest
+    # Run on PRs to any branch, or push to main
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -125,7 +131,8 @@ jobs:
   # ============== Docker Build ==============
   docker-build:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    # Only run on push to main (not on PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test-backend, build-frontend]
     steps:
       - name: Checkout code
@@ -146,7 +153,8 @@ jobs:
   # ============== Deploy (Production) ==============
   deploy-production:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Only deploy on push to main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test-backend, build-frontend, docker-build]
     environment: production
     steps:
@@ -162,11 +170,14 @@ jobs:
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
 
-  # ============== Deploy (Staging) ==============
+  # ============== Deploy (Staging) - Manual Only ==============
+  # This job is disabled for automatic runs
+  # Use 'workflow_dispatch' to deploy to staging manually when needed
   deploy-staging:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-    needs: [test-backend, build-frontend]
+    if: false  # Disabled - never runs automatically
+    # To enable manual deployment, uncomment below and comment out 'if: false':
+    # if: github.event_name == 'workflow_dispatch'
     environment: staging
     steps:
       - name: Checkout code
@@ -175,4 +186,8 @@ jobs:
       - name: Deploy to staging
         run: |
           echo "Deploying to staging..."
-          # Add staging deployment here
+          echo "This job is disabled. To deploy to staging:"
+          echo "1. Go to Actions tab in GitHub"
+          echo "2. Select 'CI/CD Pipeline'"
+          echo "3. Click 'Run workflow'"
+          echo "4. Select 'dev' branch and run"

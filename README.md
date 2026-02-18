@@ -174,7 +174,29 @@ make help          # Show all commands
 ## 🐳 Docker
 
 ```bash
-docker-compose up -d
+# Development with all services
+docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+
+# View logs
+task docker:logs
+```
+
+## 🔄 CI/CD Pipeline
+
+**Automated Workflow:**
+
+| Trigger | Tests | Build | Deploy |
+|---------|-------|-------|--------|
+| Push to `dev` | ❌ | ❌ | ❌ (manual only) |
+| PR to `dev` | ✅ | ✅ | ❌ |
+| PR to `main` | ✅ | ✅ | ❌ |
+| Push to `main` | ✅ | ✅ | ✅ Production |
+| Manual workflow | ✅ | ✅ | ✅ Staging |
+
+**Deploy to Staging (Manual):**
+```bash
+# Go to GitHub Actions → Deploy to Staging → Run workflow
+# Select branch: dev
 ```
 
 ## 🌍 Deployment
