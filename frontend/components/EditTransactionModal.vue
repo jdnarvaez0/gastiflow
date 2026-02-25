@@ -30,22 +30,14 @@
             class="relative w-full sm:w-[480px] max-h-[90vh] sm:max-h-[85vh] bg-white dark:bg-gray-800 sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col"
           >
             <!-- Header -->
-            <div 
-              class="flex-shrink-0 px-4 sm:px-6 py-4"
-              :class="form.transaction_type === 'expense' ? 'bg-red-500' : 'bg-emerald-500'"
-            >
+            <div class="flex-shrink-0 px-4 sm:px-6 py-4 bg-amber-500">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                    <UIcon 
-                      :name="form.transaction_type === 'expense' ? 'i-heroicons-arrow-trending-down' : 'i-heroicons-arrow-trending-up'" 
-                      class="w-5 h-5 text-white"
-                    />
+                    <UIcon name="i-heroicons-pencil-square" class="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 class="text-lg font-bold text-white">
-                      {{ form.transaction_type === 'expense' ? 'Nuevo Gasto' : 'Nuevo Ingreso' }}
-                    </h3>
+                    <h3 class="text-lg font-bold text-white">Editar Movimiento</h3>
                   </div>
                 </div>
                 <button 
@@ -189,8 +181,7 @@
                 <button 
                   type="button"
                   @click="saveTransaction"
-                  class="flex-1 px-4 py-3.5 text-white font-semibold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  :class="form.transaction_type === 'expense' ? 'bg-red-500' : 'bg-emerald-500'"
+                  class="flex-1 px-4 py-3.5 bg-amber-500 text-white font-semibold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   :disabled="loading || !isFormValid"
                 >
                   <UIcon v-if="loading" name="i-heroicons-arrow-path" class="w-5 h-5 animate-spin" />
@@ -207,7 +198,8 @@
 
 <script setup>
 const props = defineProps({
-  isOpen: Boolean
+  isOpen: Boolean,
+  transaction: Object
 })
 
 const emit = defineEmits(['close', 'saved'])
@@ -218,13 +210,6 @@ const { success: notifySuccess, error: notifyError } = useNotification()
 
 const loading = ref(false)
 const errorMessage = ref('')
-const form = reactive({
-  description: '',
-  amount: '',
-  transaction_type: 'expense',
-  category: 'Comida',
-  date: new Date().toISOString().split('T')[0]
-})
 
 const allCategories = [
   { value: 'Comida', label: 'Comida', icon: 'i-heroicons-cake', type: 'expense' },
@@ -252,6 +237,31 @@ const filteredCategories = computed(() => {
   return allCategories.filter(cat => cat.type === form.transaction_type)
 })
 
+const form = reactive({
+  description: '',
+  amount: '',
+  transaction_type: 'expense',
+  category: 'Comida',
+  date: ''
+})
+
+watch(() => props.transaction, (newTransaction) => {
+  if (newTransaction) {
+    form.description = newTransaction.description || ''
+    form.amount = newTransaction.amount || ''
+    form.transaction_type = newTransaction.transaction_type || 'expense'
+    form.category = newTransaction.category || 'Comida'
+    if (newTransaction.date) {
+      const d = new Date(newTransaction.date)
+      const offset = d.getTimezoneOffset()
+      const localDate = new Date(d.getTime() + offset * 60000)
+      form.date = localDate.toISOString().split('T')[0]
+    } else {
+      form.date = new Date().toISOString().split('T')[0]
+    }
+  }
+}, { immediate: true })
+
 watch(() => form.transaction_type, () => {
   const valid = filteredCategories.value
   if (!valid.find(c => c.value === form.category)) {
@@ -266,53 +276,46 @@ const isFormValid = computed(() => {
 const close = () => {
   errorMessage.value = ''
   emit('close')
-  setTimeout(() => {
-    form.description = ''
-    form.amount = ''
-    form.transaction_type = 'expense'
-    form.category = 'Comida'
-    form.date = new Date().toISOString().split('T')[0]
-    errorMessage.value = ''
-  }, 200)
 }
 
 const saveTransaction = async () => {
   errorMessage.value = ''
   
   if (!isAuthenticated.value) {
-    errorMessage.value = 'Debes iniciar sesión para agregar movimientos.'
+    errorMessage.value = 'Debes iniciar sesión para editar movimientos.'
+    return
+  }
+  
+  if (!props.transaction?.id) {
+    errorMessage.value = 'Error: No se encontró el movimiento.'
     return
   }
   
   loading.value = true
   try {
-    await $fetch('/api/expenses', {
+    await $fetch(`/api/expenses/${props.transaction.id}`, {
       baseURL: config.public.apiUrl,
-      method: 'POST',
+      method: 'PUT',
       headers: getAuthHeaders(),
       body: form
     })
     
-    notifySuccess(
-      form.transaction_type === 'expense' ? 'Gasto guardado' : 'Ingreso guardado',
-      `${form.description} - $${form.amount}`
-    )
-    
+    notifySuccess('Movimiento actualizado', `${form.description} - $${form.amount}`)
     emit('saved')
     close()
   } catch (error) {
-    console.error('Error saving transaction:', error)
+    console.error('Error updating transaction:', error)
     const statusCode = error?.response?.status || error?.statusCode
     
     if (statusCode === 401) {
-      errorMessage.value = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.'
+      errorMessage.value = 'Tu sesión ha expirado.'
       setTimeout(() => { close(); router.push('/login') }, 2000)
-    } else if (statusCode === 400) {
-      errorMessage.value = 'Datos inválidos. Por favor, revisa los campos.'
-    } else if (statusCode === 422) {
-      errorMessage.value = 'Error de validación. Verifica los campos.'
+    } else if (statusCode === 403) {
+      errorMessage.value = 'No tienes permiso para editar este movimiento.'
+    } else if (statusCode === 404) {
+      errorMessage.value = 'Movimiento no encontrado.'
     } else {
-      errorMessage.value = 'Error al guardar. Intenta de nuevo más tarde.'
+      errorMessage.value = 'Error al actualizar. Intenta de nuevo.'
     }
     
     notifyError('Error', errorMessage.value)

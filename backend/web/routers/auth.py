@@ -59,7 +59,8 @@ def register(request: Request, user_data: UserCreate, db: DatabaseService = Depe
         username=user_data.username,
         hashed_password=hashed_password,
         email=user_data.email,
-        telegram_id=user_data.telegram_id
+        telegram_id=user_data.telegram_id,
+        full_name=user_data.full_name
     )
     
     # Log registration
@@ -69,7 +70,10 @@ def register(request: Request, user_data: UserCreate, db: DatabaseService = Depe
     if user.email:
         token = encode_verification_token(user.email)
         db.set_email_verification_token(user.id, token)
-        EmailService.send_verification_email(user.email, token, user.username)
+        success, error_msg = EmailService.send_verification_email(user.email, token, user.username)
+        if not success:
+            logger.warning(f"Failed to send verification email to {user.email}: {error_msg}")
+            # No fallamos el registro si el email no se envía, solo logueamos
     
     return UserResponse(
         id=user.id,
@@ -248,7 +252,10 @@ def update_settings(
         
         # Send notification to old email
         if user.email:
-            EmailService.send_email_change_notification(user.email, user.username)
+            success, error_msg = EmailService.send_email_change_notification(user.email, user.username)
+            if not success:
+                logger.warning(f"Failed to send email change notification: {error_msg}")
+                # Continuamos aunque falle la notificación
         
         # Log email change
         log_email_change(user.username, user.email, settings.email, client_ip, user_agent)

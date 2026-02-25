@@ -28,6 +28,7 @@ export interface RegisterData {
     password: string
     email?: string
     telegram_id?: string
+    full_name?: string
 }
 
 export interface UserSettings {
@@ -64,36 +65,109 @@ export const useAuth = () => {
     }
 
     // Helper to format error messages
-    const formatError = (detail: any): string => {
-        if (!detail) return 'Ha ocurrido un error inesperado'
+    const formatError = (err: any): string => {
+        // Si no hay error
+        if (!err) return 'Ha ocurrido un error inesperado'
 
-        // If it's already a string, return it
-        if (typeof detail === 'string') return detail
+        // Si es un string, devolverlo directamente
+        if (typeof err === 'string') return err
 
-        // If it's an array (typically Pydantic validation errors)
-        if (Array.isArray(detail)) {
-            return detail.map(err => {
-                if (err.msg) {
-                    // Start with the message
-                    let message = err.msg
-
-                    // Add location context if available and relevant (not for "body")
-                    if (err.loc && Array.isArray(err.loc)) {
-                        const field = err.loc[err.loc.length - 1]
-                        if (field && field !== 'body') {
-                            // Translate common field names if possible, or just capitalize
-                            const fieldName = String(field).charAt(0).toUpperCase() + String(field).slice(1)
-                            return `${fieldName}: ${message}`
+        // Manejar errores de $fetch de Nuxt
+        if (err.data) {
+            const detail = err.data.detail || err.data.message || err.data.error
+            
+            // Si el detalle es un string
+            if (typeof detail === 'string') return detail
+            
+            // Si el detalle es un array (errores de validación Pydantic)
+            if (Array.isArray(detail)) {
+                return detail.map((item: any) => {
+                    if (item.msg) {
+                        let message = item.msg
+                        // Limpiar prefijo "Value error, " si existe
+                        if (message.startsWith('Value error, ')) {
+                            message = message.replace('Value error, ', '')
                         }
+                        
+                        // Agregar contexto del campo si está disponible
+                        if (item.loc && Array.isArray(item.loc)) {
+                            const field = item.loc[item.loc.length - 1]
+                            if (field && field !== 'body') {
+                                const fieldTranslations: Record<string, string> = {
+                                    'username': 'Usuario',
+                                    'password': 'Contraseña',
+                                    'email': 'Email',
+                                    'full_name': 'Nombre completo',
+                                    'telegram_id': 'ID de Telegram'
+                                }
+                                const fieldName = fieldTranslations[String(field)] || String(field).charAt(0).toUpperCase() + String(field).slice(1)
+                                return `${fieldName}: ${message}`
+                            }
+                        }
+                        return message
                     }
-                    return message
-                }
-                return JSON.stringify(err)
-            }).join('. ')
+                    return JSON.stringify(item)
+                }).join('. ')
+            }
+            
+            // Si hay un hint en la respuesta, usarlo
+            if (err.data.hint) {
+                return err.data.hint
+            }
+            
+            // Si hay error_id, mostrarlo para debugging
+            if (err.data.error_id) {
+                console.error(`Error ID: ${err.data.error_id}`)
+            }
         }
 
-        // Fallback for objects
-        return JSON.stringify(detail)
+        // Errores de red
+        if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('network')) {
+            return 'Error de conexión: No se pudo conectar con el servidor. Verifica tu conexión a internet.'
+        }
+
+        // Errores de CORS
+        if (err.statusCode === 0 || err.status === 0) {
+            return 'Error de conexión: Problema con CORS o el servidor no responde. Verifica la configuración.'
+        }
+
+        // Timeout
+        if (err.name === 'AbortError' || err.message?.includes('timeout')) {
+            return 'La operación tomó demasiado tiempo. Por favor intenta nuevamente.'
+        }
+
+        // Errores HTTP específicos
+        if (err.statusCode === 429) {
+            return 'Demasiadas solicitudes. Por favor espera un momento antes de intentar nuevamente.'
+        }
+        
+        if (err.statusCode === 401) {
+            return 'Usuario o contraseña incorrectos'
+        }
+        
+        if (err.statusCode === 403) {
+            return 'No tienes permiso para realizar esta acción'
+        }
+        
+        if (err.statusCode === 404) {
+            return 'El recurso solicitado no fue encontrado'
+        }
+        
+        if (err.statusCode === 422) {
+            return 'Los datos proporcionados no son válidos. Por favor verifica la información.'
+        }
+
+        if (err.statusCode >= 500) {
+            return 'Error del servidor. Por favor intenta más tarde o contacta soporte.'
+        }
+
+        // Intentar obtener mensaje del error
+        if (err.message && typeof err.message === 'string') {
+            return err.message
+        }
+
+        // Fallback: convertir a string
+        return 'Ha ocurrido un error inesperado. Por favor intenta nuevamente.'
     }
 
     // Login
@@ -124,7 +198,8 @@ export const useAuth = () => {
             await fetchUser()
             return true
         } catch (e: any) {
-            error.value = formatError(e?.data?.detail) || 'Error al iniciar sesión'
+            error.value = formatError(e) || 'Error al iniciar sesión'
+            console.error('Login error:', e)
             return false
         } finally {
             isLoading.value = false
@@ -149,7 +224,8 @@ export const useAuth = () => {
             // Auto-login after registration
             return await login({ username: data.username, password: data.password })
         } catch (e: any) {
-            error.value = formatError(e?.data?.detail) || 'Error al registrarse'
+            error.value = formatError(e) || 'Error al registrarse'
+            console.error('Register error:', e)
             return false
         } finally {
             isLoading.value = false
@@ -169,9 +245,15 @@ export const useAuth = () => {
                 }
             })
             user.value = userData
-        } catch (e) {
-            // Token invalid - logout
-            logout()
+        } catch (e: any) {
+            // Solo hacer logout si el token es inválido (401), no por errores de red
+            if (e.statusCode === 401 || e.status === 401) {
+                console.log('Token inválido o expirado, cerrando sesión')
+                logout()
+            } else {
+                // Para otros errores, solo loguear pero mantener la sesión
+                console.error('Error fetching user:', e)
+            }
         }
     }
 
@@ -195,7 +277,7 @@ export const useAuth = () => {
             user.value = updatedUser
             return true
         } catch (e: any) {
-            error.value = formatError(e?.data?.detail) || 'Error al actualizar configuración'
+            error.value = formatError(e) || 'Error al actualizar configuración'
             return false
         } finally {
             isLoading.value = false
@@ -243,7 +325,7 @@ export const useAuth = () => {
 
             return { success: true, alreadyVerified: response.already_verified }
         } catch (e: any) {
-            error.value = formatError(e?.data?.detail) || 'Error al verificar el email'
+            error.value = formatError(e) || 'Error al verificar el email'
             return { success: false, alreadyVerified: false }
         } finally {
             isLoading.value = false
@@ -269,7 +351,7 @@ export const useAuth = () => {
             })
             return true
         } catch (e: any) {
-            error.value = formatError(e?.data?.detail) || 'Error al reenviar email de verificación'
+            error.value = formatError(e) || 'Error al reenviar email de verificación'
             return false
         } finally {
             isLoading.value = false
@@ -296,7 +378,7 @@ export const useAuth = () => {
             user.value = updatedUser
             return true
         } catch (e: any) {
-            error.value = formatError(e?.data?.detail) || 'Error al cambiar email'
+            error.value = formatError(e) || 'Error al cambiar email'
             return false
         } finally {
             isLoading.value = false
@@ -326,7 +408,7 @@ export const useAuth = () => {
             user.value = updatedUser
             return true
         } catch (e: any) {
-            error.value = formatError(e?.data?.detail) || 'Error al subir la foto de perfil'
+            error.value = formatError(e) || 'Error al subir la foto de perfil'
             return false
         } finally {
             isLoading.value = false
@@ -352,7 +434,7 @@ export const useAuth = () => {
             user.value = updatedUser
             return true
         } catch (e: any) {
-            error.value = formatError(e?.data?.detail) || 'Error al eliminar la foto de perfil'
+            error.value = formatError(e) || 'Error al eliminar la foto de perfil'
             return false
         } finally {
             isLoading.value = false
@@ -367,7 +449,7 @@ export const useAuth = () => {
         error.value = null
 
         try {
-            const response = await $fetch<{ code: string; expires_at: string }>('/api/telegram/generate-link-code', {
+            const response = await $fetch<{ code: string; expires_at: string }>('/api/telegram/link-code', {
                 baseURL: apiUrl,
                 method: 'POST',
                 headers: {
@@ -377,7 +459,7 @@ export const useAuth = () => {
             })
             return response
         } catch (e: any) {
-            error.value = formatError(e?.data?.detail) || 'Error al generar código de vinculación'
+            error.value = formatError(e) || 'Error al generar código de vinculación'
             return null
         } finally {
             isLoading.value = false
@@ -408,6 +490,37 @@ export const useAuth = () => {
         }
     }
 
+    // Unlink Telegram account
+    const unlinkTelegram = async () => {
+        if (!token.value) return false
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            await $fetch('/api/telegram/unlink', {
+                baseURL: apiUrl,
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`,
+                    'ngrok-skip-browser-warning': 'true'
+                }
+            })
+
+            // Update local user state
+            if (user.value) {
+                user.value.telegram_id = null
+            }
+
+            return true
+        } catch (e: any) {
+            error.value = formatError(e) || 'Error al desvincular Telegram'
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
     return {
         user,
         token,
@@ -427,6 +540,7 @@ export const useAuth = () => {
         uploadProfilePicture,
         deleteProfilePicture,
         generateLinkCode,
-        checkLinkStatus
+        checkLinkStatus,
+        unlinkTelegram
     }
 }

@@ -5,10 +5,12 @@ This is the main FastAPI application that brings together all routers and middle
 Architecture follows FastAPI best practices with modular routers.
 """
 import os
+import traceback
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from loguru import logger
 
 # Import configuration
 from .config import ENVIRONMENT, UPLOADS_DIR
@@ -87,6 +89,61 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content={"detail": sanitized_errors}
     )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global exception handler for unexpected errors.
+    Logs the full error and returns a user-friendly message.
+    """
+    error_id = logger.traceback_id if hasattr(logger, 'traceback_id') else id(exc)
+    
+    # Log the full error with traceback
+    logger.error(f"Unexpected error [ID: {error_id}]: {str(exc)}")
+    logger.error(f"Traceback:\n{traceback.format_exc()}")
+    
+    # Determine the error message based on the exception type
+    error_message = "Ha ocurrido un error inesperado"
+    error_detail = None
+    
+    # Handle specific exception types with user-friendly messages
+    if "UniqueViolation" in str(type(exc)) or "unique constraint" in str(exc).lower():
+        error_message = "Error de duplicación"
+        error_detail = "Ya existe un registro con esos datos. Por favor verifica la información."
+    elif "ForeignKeyViolation" in str(type(exc)) or "foreign key" in str(exc).lower():
+        error_message = "Error de referencia"
+        error_detail = "El recurso al que intentas acceder no existe o ha sido eliminado."
+    elif "connection" in str(exc).lower() or "database" in str(exc).lower():
+        error_message = "Error de conexión"
+        error_detail = "No se pudo conectar con la base de datos. Por favor intenta más tarde."
+    elif "timeout" in str(exc).lower():
+        error_message = "Tiempo de espera agotado"
+        error_detail = "La operación tomó demasiado tiempo. Por favor intenta nuevamente."
+    
+    # In development, include more details
+    if ENVIRONMENT == "development":
+        response_content = {
+            "detail": error_message,
+            "error": str(exc),
+            "type": type(exc).__name__,
+            "error_id": str(error_id)
+        }
+        if error_detail:
+            response_content["hint"] = error_detail
+    else:
+        response_content = {
+            "detail": error_message,
+            "error_id": str(error_id)
+        }
+        if error_detail:
+            response_content["hint"] = error_detail
+    
+    return JSONResponse(
+        status_code=500,
+        content=response_content
+    )
+
 
 # ==================== INCLUDE ROUTERS ====================
 

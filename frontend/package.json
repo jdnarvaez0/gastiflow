@@ -18,6 +18,8 @@
         "vue-router": "^4.4.0"
     },
     "dependencies": {
-        "@nuxtjs/i18n": "^10.2.1"
+        "@nuxtjs/i18n": "^10.2.1",
+        "sileo": "^0.1.5",
+        "vue-sonner": "^2.0.9"
     }
 }

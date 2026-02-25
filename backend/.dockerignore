@@ -4,55 +4,56 @@ __pycache__/
 *$py.class
 *.so
 .Python
-*.egg-info/
-dist/
-build/
-
-# Virtual environments
 .venv/
 venv/
-ENV/
 env/
 
-# Environment files
+# Environment
 .env
 .env.local
 .env.*.local
-
-# Logs
-*.log
-bot_logs*.log
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
 # Git
 .git/
 .gitignore
-.gitattributes
+
+# Logs
+*.log
+bot_logs.log
+
+# Testing
+test/
+tests/
+.pytest_cache/
+.coverage
 
 # Documentation
-*.md
-docs/
-
-# CI/CD
-.github/
-
-# Database
-*.db
-*.sqlite
+README.md
+DEPLOY.md
+AGENTS.md
 
 # Temporary files
+temp_*.jpg
+temp_*.ogg
+temp_*.png
 *.tmp
-temp/
-tmp/
+
+# Migrations (opcional - si las ejecutas manualmente)
+migrations/
+
+# Local scripts
+*.local
+*.local.sh
+*.local.ps1
+start-app.ps1
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore

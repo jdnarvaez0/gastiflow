@@ -50,6 +50,7 @@ class UserCreate(BaseModel):
     email: Optional[EmailStr] = None
     password: str = Field(..., min_length=8)
     telegram_id: Optional[str] = None
+    full_name: Optional[str] = Field(None, max_length=200)
     
     @validator('password')
     def validate_password_strength(cls, v):

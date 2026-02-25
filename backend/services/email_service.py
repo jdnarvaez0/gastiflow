@@ -3,6 +3,8 @@ Email service for sending verification emails and notifications
 """
 import os
 import smtplib
+import time
+import random
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
@@ -35,6 +37,37 @@ class EmailService:
         except Exception as e:
             logger.error(f"Error connecting to SMTP server: {e}")
             raise
+    
+    @staticmethod
+    def _send_with_retry(send_func, max_retries=3, base_delay=1):
+        """
+        Send email with exponential backoff retry mechanism.
+        
+        Args:
+            send_func: Function that performs the actual send
+            max_retries: Maximum number of retry attempts
+            base_delay: Base delay in seconds for exponential backoff
+            
+        Returns:
+            Tuple (success: bool, error_message: Optional[str])
+        """
+        for attempt in range(max_retries):
+            try:
+                return send_func(), None
+            except Exception as e:
+                error_msg = str(e)
+                logger.warning(f"Email send attempt {attempt + 1}/{max_retries} failed: {error_msg}")
+                
+                if attempt < max_retries - 1:
+                    # Exponential backoff with jitter: delay = base_delay * 2^attempt + random(0, 1)
+                    delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                    logger.info(f"Retrying in {delay:.2f} seconds...")
+                    time.sleep(delay)
+                else:
+                    logger.error(f"All {max_retries} attempts failed. Last error: {error_msg}")
+                    return False, error_msg
+        
+        return False, "Unknown error"
     
     @staticmethod
     def _create_verification_email_html(username: str, verification_link: str) -> str:
@@ -231,9 +264,9 @@ class EmailService:
         """
     
     @staticmethod
-    def send_verification_email(email: str, token: str, username: str) -> bool:
+    def send_verification_email(email: str, token: str, username: str) -> tuple[bool, Optional[str]]:
         """
-        Send email verification email
+        Send email verification email with retry mechanism
         
         Args:
             email: Recipient email address
@@ -241,14 +274,14 @@ class EmailService:
             username: User's username
             
         Returns:
-            True if email was sent successfully, False otherwise
+            Tuple (success: bool, error_message: Optional[str])
         """
         if not SMTP_USER or not SMTP_PASSWORD:
             logger.warning("SMTP credentials not configured. Email not sent.")
             logger.info(f"Verification link would be: {FRONTEND_URL}/verify-email?token={token}")
-            return False
+            return False, "SMTP not configured"
         
-        try:
+        def _send():
             verification_link = f"{FRONTEND_URL}/verify-email?token={token}"
             
             # Create message
@@ -271,13 +304,12 @@ class EmailService:
             
             logger.info(f"Verification email sent to {email}")
             return True
-            
-        except Exception as e:
-            logger.error(f"Error sending verification email: {e}")
-            return False
+        
+        success, error = EmailService._send_with_retry(_send)
+        return success, error
     
     @staticmethod
-    def send_email_change_notification(old_email: str, username: str) -> bool:
+    def send_email_change_notification(old_email: str, username: str) -> tuple[bool, Optional[str]]:
         """
         Send notification to old email when email is changed
         
@@ -286,13 +318,13 @@ class EmailService:
             username: User's username
             
         Returns:
-            True if email was sent successfully, False otherwise
+            Tuple (success: bool, error_message: Optional[str])
         """
         if not SMTP_USER or not SMTP_PASSWORD:
             logger.warning("SMTP credentials not configured. Email not sent.")
-            return False
+            return False, "SMTP not configured"
         
-        try:
+        def _send():
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = 'Cambio de correo electrónico - Gastiflow'
@@ -313,7 +345,6 @@ class EmailService:
             
             logger.info(f"Email change notification sent to {old_email}")
             return True
-            
-        except Exception as e:
-            logger.error(f"Error sending email change notification: {e}")
-            return False
+        
+        success, error = EmailService._send_with_retry(_send)
+        return success, error

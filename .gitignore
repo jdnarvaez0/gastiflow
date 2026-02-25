@@ -6,6 +6,7 @@
 __pycache__/
 *.py[cod]
 *.pyc
+.pytest_cache/
 
 # Virtual environment
 .venv/
@@ -14,10 +15,12 @@ env/
 
 # IDE
 .vscode/
+.idea/
+*.swp
+*.swo
 
 # Logs
 *.log
-bot_logs.log
 
 # Google Sheets credentials
 config/credentials.json
@@ -41,22 +44,30 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# other files
+# Documentation (local only)
 DEPLOY.md
 
-# Utility/dev scripts
+# Utility/dev scripts (local only)
 check_emails.py
 unlink_telegram.py
 start-app.ps1
+setup.ps1
+health-check.ps1
+backend/test_security_features.ps1
 
-# agents
+# Agent files
 .agents/
 .agent/
+AGENTS.md
 
-# IDE
-.idea/
-*.swp
-*.swo
+# Build/task tools (local only)
+Makefile
+Taskfile.yml
+.task/
+.taskfile.yml
+
+# Root package-lock (not a real project)
+/package-lock.json
 
 # Coverage
 .coverage
@@ -66,10 +77,6 @@ htmlcov/
 *.local
 *.local.sh
 *.local.ps1
-
-# Taskfile
-.task/
-.taskfile.yml
 
 # Temporary files
 *.tmp

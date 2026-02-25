@@ -1,0 +1,36 @@
+# Root dockerignore
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+
+# IDE
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Docker files (no need to include in context)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Local development scripts
+start-app.ps1
+setup.ps1
+Taskfile.yml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db

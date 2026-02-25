@@ -28,6 +28,11 @@
         Cuentas
       </NuxtLink>
 
+      <NuxtLink to="/presupuestos" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-400 rounded-xl transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" active-class="bg-primary-50 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400 font-medium">
+        <UIcon name="i-heroicons-wallet" class="w-5 h-5 mr-3" />
+        Presupuestos
+      </NuxtLink>
+
       <NuxtLink to="/categorias" class="flex items-center px-4 py-3 text-gray-600 dark:text-gray-400 rounded-xl transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" active-class="bg-primary-50 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400 font-medium">
         <UIcon name="i-heroicons-tag" class="w-5 h-5 mr-3" />
         Categorías

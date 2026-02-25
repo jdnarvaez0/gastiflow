@@ -173,6 +173,7 @@ Regístrate en la web y configura tu Telegram ID para usar tu propia API Key.
         Uso: /link ABC123
         """
         telegram_id = str(update.effective_user.id)
+        logger.info(f"Link command received from telegram_id={telegram_id}, args={context.args}")
         
         # Check if user is already linked
         user = self.db.get_user_by_telegram_id(telegram_id)
@@ -199,10 +200,12 @@ Regístrate en la web y configura tu Telegram ID para usar tu propia API Key.
             )
             return
         
-        code = context.args[0].upper()
+        code = context.args[0].upper().strip()
+        logger.info(f"Attempting to link telegram_id={telegram_id} with code={code}")
         
         # Validate code format (6 alphanumeric characters)
         if len(code) != 6 or not code.isalnum():
+            logger.warning(f"Invalid code format: {code} (length={len(code)})")
             await update.message.reply_text(
                 "❌ Código inválido.\n\n"
                 "El código debe tener 6 caracteres alfanuméricos.\n"
@@ -213,6 +216,7 @@ Regístrate en la web y configura tu Telegram ID para usar tu propia API Key.
         
         # Try to use the link code
         success = self.db.use_link_code(code, telegram_id)
+        logger.info(f"use_link_code result for code={code}: success={success}")
         
         if success:
             # Get updated user info
@@ -223,10 +227,11 @@ Regístrate en la web y configura tu Telegram ID para usar tu propia API Key.
                 f"📱 Telegram ID: {telegram_id}\n\n"
                 f"Ahora puedes usar el bot sin límites. ¡Empieza a registrar tus gastos!"
             )
-            logger.info(f"Telegram {telegram_id} linked to user {linked_user.id}")
+            logger.info(f"SUCCESS: Telegram {telegram_id} linked to user {linked_user.id}")
         else:
             # Get the link code to check why it failed
             link_code = self.db.get_link_code(code)
+            logger.info(f"Link code lookup for {code}: found={link_code is not None}")
             
             if not link_code:
                 error_msg = (
@@ -235,11 +240,13 @@ Regístrate en la web y configura tu Telegram ID para usar tu propia API Key.
                     "Recuerda que los códigos expiran después de 10 minutos."
                 )
             elif link_code.used:
+                logger.warning(f"Code {code} was already used")
                 error_msg = (
                     "❌ Este código ya fue utilizado.\n\n"
                     "Genera un nuevo código en la aplicación web."
                 )
             elif link_code.is_expired():
+                logger.warning(f"Code {code} has expired (created at {link_code.created_at}, expires at {link_code.expires_at})")
                 error_msg = (
                     "❌ Este código ha expirado.\n\n"
                     "Los códigos son válidos por 10 minutos.\n"
@@ -249,11 +256,13 @@ Regístrate en la web y configura tu Telegram ID para usar tu propia API Key.
                 # Check if telegram_id is already linked to another account
                 existing_user = self.db.get_user_by_telegram_id(telegram_id)
                 if existing_user and not existing_user.username.startswith("telegram_"):
+                    logger.warning(f"Telegram {telegram_id} already linked to user {existing_user.id}")
                     error_msg = (
                         f"❌ Tu Telegram ya está vinculado a otra cuenta: {existing_user.username}\n\n"
                         "Si deseas vincular a una cuenta diferente, primero desvincúlate de la cuenta actual."
                     )
                 else:
+                    logger.error(f"Unknown error linking telegram {telegram_id} with code {code}")
                     error_msg = (
                         "❌ Error al vincular la cuenta.\n\n"
                         "Por favor, intenta de nuevo o contacta soporte."

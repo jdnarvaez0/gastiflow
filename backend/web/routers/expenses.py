@@ -134,8 +134,14 @@ def api_get_all_expenses(
     db: DatabaseService = Depends(get_db_service)
 ):
     """Get all user expenses (limited) - for backward compatibility"""
+    from loguru import logger
+    
     user_id = str(user.id)
+    logger.info(f"Fetching all expenses for user {user_id}, limit={limit}")
+    
     expenses = db.get_user_expenses(user_id, limit=limit)
+    logger.info(f"Found {len(expenses)} expenses for user {user_id}")
+    
     return expenses
 
 
@@ -195,3 +201,57 @@ def api_delete_expense(
         return {"message": "Expense deleted successfully"}
     else:
         raise HTTPException(status_code=500, detail="Failed to delete expense")
+
+
+@router.put("/expenses/{expense_id}")
+def api_update_expense(
+    expense_id: int,
+    expense: ExpenseCreate,
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """Update an expense by ID"""
+    from loguru import logger
+    
+    user_id = str(user.id)
+    logger.info(f"Updating expense {expense_id} for user {user_id}")
+    
+    # Get expense to verify ownership
+    existing_expense = db.get_expense_by_id(expense_id)
+    
+    if not existing_expense:
+        logger.warning(f"Expense {expense_id} not found")
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    if str(existing_expense.user_id) != user_id:
+        logger.warning(f"User {user_id} not authorized to update expense {expense_id}")
+        raise HTTPException(status_code=403, detail="Not authorized to update this expense")
+    
+    try:
+        # Parse date (expecting YYYY-MM-DD format)
+        logger.info(f"Parsing date: {expense.date}")
+        parsed_date = datetime.strptime(expense.date, "%Y-%m-%d")
+        
+        # Update expense
+        updated = db.update_expense(
+            expense_id=expense_id,
+            amount=expense.amount,
+            description=expense.description,
+            category=expense.category,
+            transaction_type=expense.transaction_type,
+            date=parsed_date
+        )
+        
+        if updated:
+            logger.info(f"Expense {expense_id} updated successfully")
+            return {"message": "Expense updated successfully"}
+        else:
+            logger.error(f"Failed to update expense {expense_id}")
+            raise HTTPException(status_code=500, detail="Failed to update expense")
+        
+    except ValueError as e:
+        logger.error(f"Invalid data for expense update: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid data: {str(e)}")
+    except Exception as e:
+        logger.error(f"Server error updating expense: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")

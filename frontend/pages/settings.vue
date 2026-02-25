@@ -234,10 +234,20 @@
                     </div>
                 </div>
                 
-                <!-- Already Linked Message -->
-                <div v-else class="flex items-center gap-3 py-3 px-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg">
-                    <i class="fas fa-check-circle text-xl"></i>
-                    <span>Tu Telegram está vinculado correctamente.</span>
+                <!-- Already Linked -->
+                <div v-else class="space-y-4">
+                    <div class="flex items-center gap-3 py-3 px-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg">
+                        <i class="fas fa-check-circle text-xl"></i>
+                        <span>Tu Telegram está vinculado correctamente.</span>
+                    </div>
+                    <button 
+                        @click="handleUnlinkTelegram" 
+                        class="w-full py-2.5 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg font-medium hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                        :disabled="isLoading"
+                    >
+                        <i class="fas fa-unlink"></i>
+                        {{ isLoading ? 'Desvinculando...' : 'Desvincular Telegram' }}
+                    </button>
                 </div>
             </div>
             
@@ -312,14 +322,6 @@
             </div>
         </div>
         
-        <!-- Success/Error Messages -->
-        <div v-if="successMessage" class="mt-6 flex items-center gap-2 py-3 px-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 rounded-lg">
-            <i class="fas fa-check-circle"></i> {{ successMessage }}
-        </div>
-        <div v-if="error" class="mt-6 flex items-center gap-2 py-3 px-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg">
-            <i class="fas fa-exclamation-circle"></i> {{ error }}
-        </div>
-        
         <!-- Back Button -->
         <div class="mt-8 flex justify-between items-center">
             <NuxtLink to="/dashboard" class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
@@ -336,11 +338,11 @@
 <script setup lang="ts">
 const router = useRouter()
 const { setLocale  } = useI18n()
-const { user, isLoading, error, updateSettings, logout, isAuthenticated, init, changeEmail, resendVerification, uploadProfilePicture, deleteProfilePicture, generateLinkCode, checkLinkStatus } = useAuth()
+const { user, isLoading, error, updateSettings, logout, isAuthenticated, init, changeEmail, resendVerification, uploadProfilePicture, deleteProfilePicture, generateLinkCode, checkLinkStatus, unlinkTelegram } = useAuth()
+const { success: notifySuccess, error: notifyError } = useNotification()
 
 const geminiApiKey = ref('')
 const newEmail = ref('')
-const successMessage = ref<string | null>(null)
 const isResending = ref(false)
 const fullName = ref('')
 const isUploadingPhoto = ref(false)
@@ -406,17 +408,17 @@ const hasPreferencesChanged = computed(() => {
 })
 
 const saveApiKey = async () => {
-    successMessage.value = null
     const success = await updateSettings({ gemini_api_key: geminiApiKey.value })
     if (success) {
-        successMessage.value = 'API Key guardada correctamente'
+        notifySuccess('Éxito', 'API Key guardada correctamente')
         geminiApiKey.value = ''
+    } else if (error.value) {
+        notifyError('Error', error.value)
     }
 }
 
 // Telegram Link Code Functions
 const handleGenerateLinkCode = async () => {
-    successMessage.value = null
     const response = await generateLinkCode()
     
     if (response) {
@@ -433,7 +435,7 @@ const startPolling = () => {
     pollingInterval.value = setInterval(async () => {
         const status = await checkLinkStatus()
         if (status?.linked) {
-            successMessage.value = '✅ ¡Telegram vinculado exitosamente!'
+            notifySuccess('Éxito', '¡Telegram vinculado exitosamente!')
             stopPolling()
             stopTimer()
             showLinkCode.value = false
@@ -456,7 +458,7 @@ const startTimer = () => {
             stopTimer()
             stopPolling()
             showLinkCode.value = false
-            error.value = 'El código ha expirado. Genera uno nuevo.'
+            notifyError('Error', 'El código ha expirado. Genera uno nuevo.')
         }
     }, 1000)
 }
@@ -479,21 +481,23 @@ const formatTimeRemaining = (expiry: Date | null) => {
 }
 
 const handleChangeEmail = async () => {
-    successMessage.value = null
     const success = await changeEmail(newEmail.value)
     if (success) {
-        successMessage.value = 'Email actualizado. Revisa tu bandeja de entrada para verificarlo.'
+        notifySuccess('Éxito', 'Email actualizado. Revisa tu bandeja de entrada.')
         newEmail.value = ''
+    } else if (error.value) {
+        toast.add({ title: 'Error', description: error.value, color: 'red' })
     }
 }
 
 const handleResendVerification = async () => {
-    successMessage.value = null
     isResending.value = true
     const success = await resendVerification()
     isResending.value = false
     if (success) {
-        successMessage.value = 'Email de verificación reenviado exitosamente'
+        notifySuccess('Éxito', 'Email de verificación reenviado')
+    } else if (error.value) {
+        toast.add({ title: 'Error', description: error.value, color: 'red' })
     }
 }
 
@@ -503,15 +507,15 @@ const handleLogout = () => {
 }
 
 const handleSaveFullName = async () => {
-    successMessage.value = null
     const success = await updateSettings({ full_name: fullName.value || null })
     if (success) {
-        successMessage.value = 'Nombre guardado correctamente'
+        notifySuccess('Éxito', 'Nombre guardado correctamente')
+    } else if (error.value) {
+        toast.add({ title: 'Error', description: error.value, color: 'red' })
     }
 }
 
 const handleSavePreferences = async () => {
-    successMessage.value = null
     const success = await updateSettings({
         preferred_currency: selectedCurrency.value,
         timezone: selectedTimezone.value,
@@ -520,7 +524,9 @@ const handleSavePreferences = async () => {
     if (success) {
         // Change the app language
         setLocale(selectedLanguage.value)
-        successMessage.value = 'Preferencias guardadas correctamente'
+        notifySuccess('Éxito', 'Preferencias guardadas correctamente')
+    } else if (error.value) {
+        toast.add({ title: 'Error', description: error.value, color: 'red' })
     }
 }
 
@@ -529,23 +535,38 @@ const handleFileUpload = async (event: Event) => {
     const file = target.files?.[0]
     if (!file) return
     
-    successMessage.value = null
     isUploadingPhoto.value = true
     const success = await uploadProfilePicture(file)
     isUploadingPhoto.value = false
     if (success) {
-        successMessage.value = 'Foto de perfil actualizada'
+        notifySuccess('Éxito', 'Foto de perfil actualizada')
+    } else if (error.value) {
+        toast.add({ title: 'Error', description: error.value, color: 'red' })
     }
     target.value = ''
 }
 
 const handleDeletePhoto = async () => {
-    successMessage.value = null
     isUploadingPhoto.value = true
     const success = await deleteProfilePicture()
     isUploadingPhoto.value = false
     if (success) {
-        successMessage.value = 'Foto de perfil eliminada'
+        notifySuccess('Éxito', 'Foto de perfil eliminada')
+    } else if (error.value) {
+        toast.add({ title: 'Error', description: error.value, color: 'red' })
+    }
+}
+
+const handleUnlinkTelegram = async () => {
+    if (!confirm('¿Estás seguro de que deseas desvincular tu cuenta de Telegram? Podrás volver a vincularla más tarde.')) {
+        return
+    }
+    
+    const success = await unlinkTelegram()
+    if (success) {
+        notifySuccess('Éxito', 'Telegram desvinculado exitosamente')
+    } else if (error.value) {
+        toast.add({ title: 'Error', description: error.value, color: 'red' })
     }
 }
 </script>

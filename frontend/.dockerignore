@@ -1,7 +1,42 @@
-node_modules
-.nuxt
-.output
-dist
-.git
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.output/
+.nuxt/
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Git
+.git/
 .gitignore
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+
+# Documentation
 README.md
+
+# Local scripts
+*.local
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore

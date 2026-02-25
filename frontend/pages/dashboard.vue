@@ -47,6 +47,34 @@
     </div>
 
     <div v-else>
+        <!-- Budget Alerts -->
+        <div v-if="budgetAlerts.length > 0" class="mb-6 space-y-2">
+            <div 
+                v-for="alert in budgetAlerts.slice(0, 3)" 
+                :key="alert.budget_id"
+                class="flex items-center gap-3 p-3 sm:p-4 rounded-xl border cursor-pointer hover:shadow-md transition-shadow"
+                :class="alert.severity === 'danger' 
+                    ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
+                    : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'"
+                @click="$router.push('/presupuestos')"
+            >
+                <UIcon 
+                    :name="alert.severity === 'danger' ? 'i-heroicons-exclamation-circle' : 'i-heroicons-exclamation-triangle'"
+                    class="w-6 h-6 flex-shrink-0"
+                    :class="alert.severity === 'danger' ? 'text-red-500' : 'text-amber-500'"
+                />
+                <div class="flex-1 min-w-0">
+                    <p class="font-medium text-sm truncate" :class="alert.severity === 'danger' ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'">
+                        {{ alert.message }}
+                    </p>
+                    <p class="text-xs" :class="alert.severity === 'danger' ? 'text-red-600/70 dark:text-red-400/70' : 'text-amber-600/70 dark:text-amber-400/70'">
+                        ${{ formatNumber(alert.spent) }} de ${{ formatNumber(alert.budget_amount) }}
+                    </p>
+                </div>
+                <UIcon name="i-heroicons-chevron-right" class="w-5 h-5 flex-shrink-0" :class="alert.severity === 'danger' ? 'text-red-400' : 'text-amber-400'" />
+            </div>
+        </div>
+
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <!-- Balance Total -->
@@ -225,6 +253,7 @@ const authReady = ref(false)
 const data = ref(null)
 const pending = ref(true)
 const error = ref(null)
+const budgetAlerts = ref([])
 
 // Polling interval ref
 const pollingInterval = ref(null)
@@ -253,9 +282,23 @@ const fetchDashboard = async () => {
     }
 }
 
+// Fetch budget alerts
+const fetchBudgetAlerts = async () => {
+    if (!token.value) return
+    try {
+        const alerts = await $fetch('/api/budgets/alerts', {
+            baseURL: config.public.apiUrl,
+            headers: getAuthHeaders()
+        })
+        budgetAlerts.value = alerts
+    } catch (e) {
+        console.error('Error fetching budget alerts:', e)
+    }
+}
+
 // Refresh function for manual refresh and after adding transactions
 const refresh = async () => {
-    await fetchDashboard()
+    await Promise.all([fetchDashboard(), fetchBudgetAlerts()])
 }
 
 const showAddModal = ref(false)
@@ -284,7 +327,10 @@ const startPolling = () => {
     if (pollingInterval.value) return
     pollingInterval.value = setInterval(async () => {
         if (token.value) {
-            await fetchDashboard()
+            await Promise.all([
+                fetchDashboard(),
+                fetchBudgetAlerts()
+            ])
             if (data.value?.history) {
                 renderChart(data.value.history)
             }
@@ -303,7 +349,7 @@ const stopPolling = () => {
 onMounted(async () => {
     await init()
     authReady.value = true
-    await fetchDashboard()
+    await Promise.all([fetchDashboard(), fetchBudgetAlerts()])
     
     // Load saved theme - Default to dark theme for new users
     const savedTheme = localStorage.getItem('theme')

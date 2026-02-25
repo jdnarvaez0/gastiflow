@@ -225,6 +225,42 @@ class DatabaseService:
         finally:
             session.close()
 
+    def update_expense(self, expense_id: int, **kwargs) -> Optional[ExpenseDB]:
+        """
+        Actualiza un gasto existente
+        
+        Args:
+            expense_id: ID del gasto
+            **kwargs: Campos a actualizar (amount, description, category, transaction_type, date)
+            
+        Returns:
+            ExpenseDB actualizado o None si no existe
+        """
+        session = self.get_session()
+        try:
+            expense = session.query(ExpenseDB).filter(ExpenseDB.id == expense_id).first()
+            
+            if not expense:
+                return None
+            
+            # Actualizar campos permitidos
+            allowed_fields = ['amount', 'description', 'category', 'transaction_type', 'date']
+            for key, value in kwargs.items():
+                if key in allowed_fields and hasattr(expense, key):
+                    setattr(expense, key, value)
+            
+            session.commit()
+            session.refresh(expense)
+            logger.info(f"Gasto actualizado: ID={expense_id}")
+            return expense
+            
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error actualizando gasto: {e}")
+            return None
+        finally:
+            session.close()
+
     def get_user_stats(self, user_id: str) -> dict:
         """
         Obtiene estadísticas de gastos del usuario
@@ -471,7 +507,7 @@ class DatabaseService:
 
     # ==================== USER MANAGEMENT ====================
 
-    def create_user(self, username: str, hashed_password: str, email: str = None, telegram_id: str = None) -> UserDB:
+    def create_user(self, username: str, hashed_password: str, email: str = None, telegram_id: str = None, full_name: str = None) -> UserDB:
         """
         Create a new user
         """
@@ -481,7 +517,8 @@ class DatabaseService:
                 username=username,
                 hashed_password=hashed_password,
                 email=email,
-                telegram_id=telegram_id
+                telegram_id=telegram_id,
+                full_name=full_name
             )
             session.add(db_user)
             session.commit()
@@ -870,6 +907,19 @@ class DatabaseService:
         """
         session = self.get_session()
         try:
+            # Invalidate any existing unused codes for this user
+            existing_codes = session.query(TelegramLinkCodeDB).filter(
+                TelegramLinkCodeDB.user_id == user_id,
+                TelegramLinkCodeDB.used == False
+            ).all()
+            
+            for code in existing_codes:
+                code.used = True  # Mark as used to invalidate
+                logger.info(f"Invalidated old link code {code.code} for user {user_id}")
+            
+            if existing_codes:
+                session.commit()
+            
             # Generate a unique 6-character code
             code = self._generate_unique_code(session)
             
@@ -887,12 +937,14 @@ class DatabaseService:
             session.commit()
             session.refresh(link_code)
             
-            logger.info(f"Link code created for user {user_id}: {code}")
+            logger.info(f"Link code created for user {user_id}: {code}, expires_at={expires_at}")
             return link_code
             
         except Exception as e:
             session.rollback()
             logger.error(f"Error creating link code: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
         finally:
             session.close()
@@ -961,24 +1013,33 @@ class DatabaseService:
         """
         session = self.get_session()
         try:
-            # Get the link code
+            # Get the link code (with lock to prevent race conditions)
             link_code = session.query(TelegramLinkCodeDB).filter(
                 TelegramLinkCodeDB.code == code
-            ).first()
+            ).with_for_update().first()
             
             if not link_code:
                 logger.warning(f"Link code not found: {code}")
                 return False
             
-            # Check if code is valid
+            # Check if code is valid (not used and not expired)
             if not link_code.is_valid():
-                logger.warning(f"Link code invalid or expired: {code}")
+                logger.warning(f"Link code invalid or expired: {code}, used={link_code.used}, expired={link_code.is_expired()}")
                 return False
             
             # Check if telegram_id is already linked to another user
-            existing_user = self.get_user_by_telegram_id(telegram_id)
+            existing_user = session.query(UserDB).filter(
+                UserDB.telegram_id == telegram_id
+            ).first()
+            
             if existing_user and existing_user.id != link_code.user_id:
                 logger.warning(f"Telegram ID {telegram_id} already linked to user {existing_user.id}")
+                return False
+            
+            # Check if target user already has a different telegram_id
+            target_user = session.query(UserDB).filter(UserDB.id == link_code.user_id).first()
+            if target_user and target_user.telegram_id and target_user.telegram_id != telegram_id:
+                logger.warning(f"User {target_user.id} already has telegram_id {target_user.telegram_id}")
                 return False
             
             # Mark code as used
@@ -986,11 +1047,10 @@ class DatabaseService:
             link_code.telegram_id = telegram_id
             
             # Update user's telegram_id
-            user = session.query(UserDB).filter(UserDB.id == link_code.user_id).first()
-            if user:
-                user.telegram_id = telegram_id
+            if target_user:
+                target_user.telegram_id = telegram_id
                 session.commit()
-                logger.info(f"Telegram ID {telegram_id} linked to user {user.id}")
+                logger.info(f"Telegram ID {telegram_id} linked to user {target_user.id}")
                 return True
             
             return False
@@ -998,6 +1058,8 @@ class DatabaseService:
         except Exception as e:
             session.rollback()
             logger.error(f"Error using link code: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return False
         finally:
             session.close()

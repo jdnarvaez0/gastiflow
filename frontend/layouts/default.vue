@@ -27,9 +27,13 @@
           </NuxtLink>
         </li>
         <li>
-          <a href="#" class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
-            <i class="fa-solid fa-chart-line"></i> {{ $t('nav.reports') }}
-          </a>
+          <NuxtLink 
+            to="/presupuestos" 
+            active-class="!bg-primary !text-white" 
+            class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors"
+          >
+            <i class="fa-solid fa-wallet"></i> Presupuestos
+          </NuxtLink>
         </li>
         <li>
           <a href="#" class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-primary hover:text-white text-sm transition-colors">
@@ -130,16 +134,20 @@
           <i class="fa-solid fa-plus text-xl"></i>
         </button>
 
-        <!-- Reports -->
-        <a 
-          href="#" 
-          class="flex flex-col items-center justify-center py-2 px-3 rounded-xl transition-all group text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        <!-- Budgets -->
+        <NuxtLink 
+          to="/presupuestos" 
+          class="flex flex-col items-center justify-center py-2 px-3 rounded-xl transition-all group"
+          :class="isActiveRoute('/presupuestos') ? 'text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'"
         >
-          <div class="w-10 h-10 flex items-center justify-center rounded-xl transition-all group-hover:bg-gray-100 dark:group-hover:bg-gray-700">
-            <i class="fa-solid fa-chart-line text-lg"></i>
+          <div 
+            class="w-10 h-10 flex items-center justify-center rounded-xl transition-all"
+            :class="isActiveRoute('/presupuestos') ? 'bg-primary/10' : 'group-hover:bg-gray-100 dark:group-hover:bg-gray-700'"
+          >
+            <i class="fa-solid fa-wallet text-lg"></i>
           </div>
-          <span class="text-[10px] mt-1 font-medium">{{ $t('nav.reports') }}</span>
-        </a>
+          <span class="text-[10px] mt-1 font-medium">Presupuestos</span>
+        </NuxtLink>
 
         <!-- Settings -->
         <NuxtLink 

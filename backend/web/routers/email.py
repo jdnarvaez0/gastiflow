@@ -56,7 +56,7 @@ def verify_email(token: str, db: DatabaseService = Depends(get_db_service)):
 
 
 @router.post("/resend-verification")
-@limiter.limit("3/hour")
+@limiter.limit("5/minute")  # Más permisivo: 5 por minuto
 def resend_verification(request: Request, user = Depends(require_auth), db: DatabaseService = Depends(get_db_service)):
     """
     Resend verification email to current user
@@ -76,12 +76,13 @@ def resend_verification(request: Request, user = Depends(require_auth), db: Data
     # Generate new token and send email
     token = encode_verification_token(user.email)
     db.set_email_verification_token(user.id, token)
-    success = EmailService.send_verification_email(user.email, token, user.username)
+    success, error_msg = EmailService.send_verification_email(user.email, token, user.username)
     
     if not success:
+        logger.error(f"Failed to resend verification email: {error_msg}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send verification email"
+            detail=f"Failed to send verification email: {error_msg}"
         )
     
     return {"message": "Verification email sent"}

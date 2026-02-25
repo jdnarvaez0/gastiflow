@@ -8,6 +8,7 @@ from ..dependencies import get_db_service, require_auth
 from services.database_service import DatabaseService
 from models.telegram_link_code import TelegramLinkCodeResponse, TelegramLinkStatusResponse
 
+# Import shared limiter from auth router (it's configured in middleware)
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 limiter = Limiter(key_func=get_remote_address)
@@ -62,6 +63,40 @@ def check_telegram_link_status(
     current_user = db.get_user_by_id(user.id)
     
     return TelegramLinkStatusResponse(
-        is_linked=bool(current_user.telegram_id if current_user else False),
+        linked=bool(current_user.telegram_id if current_user else False),
         telegram_id=current_user.telegram_id if current_user else None
     )
+
+
+@router.post("/unlink")
+@limiter.limit("3/hour")
+def unlink_telegram(
+    request: Request,
+    user = Depends(require_auth),
+    db: DatabaseService = Depends(get_db_service)
+):
+    """
+    Unlink Telegram account from user
+    
+    Allows users to disconnect their Telegram account
+    """
+    # Check if user has Telegram linked
+    if not user.telegram_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No Telegram account linked to this user"
+        )
+    
+    # Update user to remove telegram_id
+    updated_user = db.update_user(user.id, telegram_id=None)
+    
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to unlink Telegram account"
+        )
+    
+    return {
+        "message": "Telegram account unlinked successfully",
+        "telegram_id": None
+    }
