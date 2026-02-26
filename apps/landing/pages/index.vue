@@ -214,8 +214,8 @@ definePageMeta({
   layout: 'default'
 })
 
-// URL del dashboard
-const dashboardUrl = 'http://localhost:3000'
+// URL del dashboard desde configuración de entorno
+const { public: { dashboardUrl } } = useRuntimeConfig()
 
 // Landing page - no auth check needed
 // Dashboard handles auth redirect separately

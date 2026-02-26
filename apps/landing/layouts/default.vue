@@ -53,8 +53,8 @@
 
 <script setup>
 // Landing layout - no auth required
-// URL del dashboard (en producción cambiar al dominio real)
-const dashboardUrl = 'http://localhost:3000'
+// URL del dashboard desde configuración de entorno
+const { public: { dashboardUrl } } = useRuntimeConfig()
 </script>
 
 <style>

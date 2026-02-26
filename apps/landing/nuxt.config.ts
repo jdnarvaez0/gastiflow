@@ -62,6 +62,12 @@ export default defineNuxtConfig({
   
   css: ['~/assets/css/style.css'],
   
+  runtimeConfig: {
+    public: {
+      dashboardUrl: process.env.NUXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3000'
+    }
+  },
+  
   colorMode: {
     preference: 'dark',
     fallback: 'dark'
