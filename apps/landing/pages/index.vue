@@ -18,22 +18,20 @@
                     {{ $t('landing.hero.subtitle') }}
                 </p>
                 <div class="flex gap-4 mb-12 flex-wrap lg:justify-start justify-center">
-                    <UButton
-                        to="/register"
-                        icon="i-heroicons-rocket-launch"
-                        label="Comenzar ahora"
-                        size="xl"
-                        class="bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all"
-                    />
-                    <UButton
-                        to="/login"
-                        icon="i-heroicons-arrow-right-start-on-rectangle"
-                        label="Iniciar sesión"
-                        variant="ghost"
-                        color="gray"
-                        size="xl"
-                        class="ring-1 ring-gray-600 text-white rounded-xl font-semibold hover:bg-white/5 hover:ring-accent transition-all"
-                    />
+                    <a
+                        :href="dashboardUrl + '/register'"
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all text-lg"
+                    >
+                        <UIcon name="i-heroicons-rocket-launch" class="w-5 h-5" />
+                        Comenzar ahora
+                    </a>
+                    <a
+                        :href="dashboardUrl + '/login'"
+                        class="inline-flex items-center gap-2 px-6 py-3 ring-1 ring-gray-600 text-white rounded-xl font-semibold hover:bg-white/5 hover:ring-accent transition-all text-lg"
+                    >
+                        <UIcon name="i-heroicons-arrow-right-start-on-rectangle" class="w-5 h-5" />
+                        Iniciar sesión
+                    </a>
                 </div>
                 <div class="flex items-center gap-8 lg:justify-start justify-center">
                     <div class="text-center">
@@ -109,6 +107,9 @@
             </div>
         </section>
 
+        <!-- Demo Interactiva -->
+        <DemoSection />
+
         <!-- How it works -->
         <section class="px-6 lg:px-24 py-24">
             <div class="text-center mb-16">
@@ -172,23 +173,21 @@
                     </div>
                 </div>
                 <div class="flex justify-center gap-4 flex-wrap">
-                    <UButton
-                        to="/register"
-                        icon="i-heroicons-rocket-launch"
-                        label="Empezar ahora"
-                        size="xl"
-                        class="bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all"
-                    />
-                    <UButton
+                    <a
+                        :href="dashboardUrl + '/register'"
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all text-lg"
+                    >
+                        <UIcon name="i-heroicons-rocket-launch" class="w-5 h-5" />
+                        Empezar ahora
+                    </a>
+                    <a
                         href="https://aistudio.google.com/app/apikey"
                         target="_blank"
-                        icon="i-heroicons-arrow-top-right-on-square"
-                        label="Obtener API Key"
-                        variant="outline"
-                        color="success"
-                        size="xl"
-                        class="border-success/50 text-success rounded-xl font-semibold hover:bg-success/10 hover:border-success transition-all"
-                    />
+                        class="inline-flex items-center gap-2 px-6 py-3 border border-success/50 text-success rounded-xl font-semibold hover:bg-success/10 hover:border-success transition-all text-lg"
+                    >
+                        <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-5 h-5" />
+                        Obtener API Key
+                    </a>
                 </div>
             </div>
         </section>
@@ -198,13 +197,13 @@
             <div class="text-center">
                 <h2 class="text-3xl lg:text-4xl font-bold mb-4 font-display">{{ $t('landing.cta.title') }}</h2>
                 <p class="text-xl text-gray-400 mb-8">{{ $t('landing.cta.subtitle') }}</p>
-                <UButton
-                    to="/register"
-                    icon="i-heroicons-user-plus"
-                    label="Crear cuenta gratis"
-                    size="xl"
-                    class="bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold text-lg hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all px-10 py-5"
-                />
+                <a
+                    :href="dashboardUrl + '/register'"
+                    class="inline-flex items-center gap-2 px-10 py-5 bg-gradient-to-r from-accent to-accent-light text-white rounded-xl font-semibold text-lg hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/40 transition-all"
+                >
+                    <UIcon name="i-heroicons-user-plus" class="w-5 h-5" />
+                    Crear cuenta gratis
+                </a>
             </div>
         </section>
     </div>
@@ -212,17 +211,14 @@
 
 <script setup lang="ts">
 definePageMeta({
-    layout: 'public'
+  layout: 'default'
 })
 
-const { isAuthenticated } = useAuth()
+// URL del dashboard
+const dashboardUrl = 'http://localhost:3000'
 
-// Redirect authenticated users to dashboard
-onMounted(() => {
-    if (isAuthenticated.value) {
-        navigateTo('/dashboard')
-    }
-})
+// Landing page - no auth check needed
+// Dashboard handles auth redirect separately
 </script>
 
 <style scoped>

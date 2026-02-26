@@ -55,6 +55,7 @@ export const useAuth = () => {
     })
     const isAuthenticated = computed(() => !!token.value && !!user.value)
     const isLoading = useState<boolean>('auth_loading', () => false)
+    const isLoggingOut = useState<boolean>('auth_logging_out', () => false)
     const error = useState<string | null>('auth_error', () => null)
 
     // Initialize - check if we have a token and fetch user
@@ -285,11 +286,18 @@ export const useAuth = () => {
     }
 
     // Logout
-    const logout = () => {
+    const logout = async () => {
+        isLoggingOut.value = true
+        
+        // Small delay to show the loading state
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
         token.value = null
         user.value = null
         if (process.client) {
             localStorage.removeItem('gastiflow_token')
+            // Redirect to landing page after logout
+            window.location.href = 'http://localhost:3001'
         }
     }
 
@@ -526,6 +534,7 @@ export const useAuth = () => {
         token,
         isAuthenticated,
         isLoading,
+        isLoggingOut,
         error,
         init,
         login,

@@ -11,17 +11,25 @@ load_dotenv()
 # Environment configuration
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+LANDING_URL = os.getenv("LANDING_URL", "http://localhost:3001")
 
 # CORS configuration
 ALLOWED_ORIGINS = [
-    "http://localhost:3000",
+    "http://localhost:3000",      # Dashboard (dev)
+    "http://localhost:3001",      # Landing (dev)
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
     "https://gastiflow.vercel.app",
+    "https://app.gastiflow.com",  # Dashboard (prod)
+    "https://gastiflow.com",      # Landing (prod)
+    "https://www.gastiflow.com",  # Landing www (prod)
 ]
 
-# Add configured frontend URL if different
-if FRONTEND_URL not in ALLOWED_ORIGINS:
+# Add configured URLs if different
+if FRONTEND_URL and FRONTEND_URL not in ALLOWED_ORIGINS:
     ALLOWED_ORIGINS.append(FRONTEND_URL)
+if LANDING_URL and LANDING_URL not in ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS.append(LANDING_URL)
 
 # Only add ngrok in development
 if ENVIRONMENT == "development":

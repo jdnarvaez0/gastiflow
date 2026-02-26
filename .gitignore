@@ -40,12 +40,23 @@ node_modules/
 .nuxt/
 .output/
 dist/
+# Apps
+apps/dashboard/node_modules/
+apps/dashboard/.nuxt/
+apps/dashboard/.output/
+apps/dashboard/dist/
+apps/landing/node_modules/
+apps/landing/.nuxt/
+apps/landing/.output/
+apps/landing/dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
 # Documentation (local only)
 DEPLOY.md
+DEPLOY_APPS.md
+DEPLOY_NEW.md
 
 # Utility/dev scripts (local only)
 check_emails.py
@@ -53,6 +64,8 @@ unlink_telegram.py
 start-app.ps1
 setup.ps1
 health-check.ps1
+temp_start.ps1
+scripts/
 backend/test_security_features.ps1
 
 # Agent files

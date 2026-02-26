@@ -18,7 +18,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Gastiflow',
+      title: 'Gastiflow - Dashboard',
       link: [
         { rel: 'icon', type: 'image/png', href: '/favicon.png' },
         { rel: 'apple-touch-icon', href: '/icon.png' },
@@ -62,5 +62,7 @@ export default defineNuxtConfig({
       // Icon Cache
       '/api/_nuxt_icon/**': { cache: { maxAge: 1728000 } }
     }
-  }
+  },
+  
+  compatibilityDate: '2026-02-26'
 })

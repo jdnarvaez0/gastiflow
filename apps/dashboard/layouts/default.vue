@@ -1,11 +1,17 @@
 <template>
   <div class="flex min-h-screen w-full overflow-x-hidden">
+    <!-- Logout Loading Overlay -->
+    <div v-if="isLoggingOut" class="fixed inset-0 bg-white/90 dark:bg-gray-900/90 z-[100] flex flex-col items-center justify-center transition-opacity duration-200">
+      <div class="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
+      <p class="text-gray-600 dark:text-gray-300 text-lg font-medium">{{ $t('auth.loggingOut') || 'Cerrando sesión...' }}</p>
+    </div>
+    
     <!-- Desktop Sidebar (hidden on mobile) -->
     <nav class="hidden lg:flex fixed top-0 left-0 h-screen w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 px-3 py-4 flex-col z-50">
-      <div class="flex items-center gap-2 mb-4 px-2">
+      <a href="http://localhost:3001" class="flex items-center gap-2 mb-4 px-2 hover:opacity-80 transition-opacity">
         <i class="fas fa-wallet text-xl text-primary"></i>
         <span class="text-lg font-bold text-primary">Gastiflow</span>
-      </div>
+      </a>
       
       <ul class="flex-1 space-y-1">
         <li>
@@ -174,7 +180,7 @@ import AddTransactionModal from '~/components/AddTransactionModal.vue'
 const router = useRouter()
 const route = useRoute()
 const { setLocale } = useI18n()
-const { user, isAuthenticated, logout, init } = useAuth()
+const { user, isAuthenticated, logout, init, isLoggingOut } = useAuth()
 
 // Modal state
 const showAddModal = ref(false)
@@ -215,7 +221,7 @@ watch(() => user.value?.language, (newLang) => {
 
 const handleLogout = () => {
   logout()
-  router.push('/login')
+  // No router.push needed - logout redirects to landing page
 }
 </script>
 

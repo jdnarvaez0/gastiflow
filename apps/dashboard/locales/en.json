@@ -1,0 +1,282 @@
+{
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "close": "Close",
+        "back": "Back",
+        "next": "Next",
+        "previous": "Previous",
+        "search": "Search",
+        "noResults": "No results",
+        "confirm": "Confirm"
+    },
+    "nav": {
+        "dashboard": "Dashboard",
+        "movements": "Movements",
+        "categories": "Categories",
+        "accounts": "Accounts",
+        "reports": "Reports",
+        "settings": "Settings",
+        "logout": "Logout"
+    },
+    "landing": {
+        "hero": {
+            "badge": "Smart financial management",
+            "title": "Take control of your",
+            "titleAccent": "personal finances",
+            "subtitle": "Record expenses with ease, analyze your financial habits and reach your savings goals. All in one place, with the help of artificial intelligence.",
+            "cta": "Start for Free",
+            "login": "I already have an account",
+            "stats": {
+                "free": "Free",
+                "integration": "Integration",
+                "ai": "With AI"
+            }
+        },
+        "features": {
+            "title": "Everything you need to manage your money",
+            "subtitle": "Powerful tools designed to simplify your financial life",
+            "easy": {
+                "title": "Easy Registration",
+                "description": "Record your expenses and income in seconds from any device."
+            },
+            "bot": {
+                "title": "Telegram Bot",
+                "description": "Record expenses from Telegram with natural language."
+            },
+            "ai": {
+                "title": "AI Analytics",
+                "description": "AI that automatically categorizes your expenses."
+            },
+            "dashboard": {
+                "title": "Intuitive Dashboard",
+                "description": "Visualize your financial situation with clear charts."
+            }
+        },
+        "howItWorks": {
+            "title": "Start in 3 simple steps",
+            "step1": {
+                "title": "Create your account",
+                "description": "Sign up for free in less than a minute"
+            },
+            "step2": {
+                "title": "Set up your profile",
+                "description": "Connect Telegram and set up your Gemini API"
+            },
+            "step3": {
+                "title": "Ready!",
+                "description": "Start recording expenses and see your progress"
+            }
+        },
+        "trial": {
+            "badge": "Free Trial",
+            "title": "Try the bot",
+            "titleAccent": "without commitment",
+            "description": "By registering, you can use the Telegram bot with free interactions to try all the features.",
+            "card1": {
+                "title": "5 Free Interactions",
+                "description": "Start with 5 free interactions"
+            },
+            "card2": {
+                "title": "Optional API Key",
+                "description": "Set up your own API Key for unlimited use"
+            },
+            "card3": {
+                "title": "No Limits",
+                "description": "With your API Key, unlimited interactions"
+            },
+            "cta": "Start Free Trial",
+            "getApiKey": "Get Free API Key"
+        },
+        "cta": {
+            "title": "Ready to take control?",
+            "subtitle": "Join now and start managing your finances intelligently",
+            "button": "Create free account"
+        }
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "balance": "Total Balance",
+        "income": "Income",
+        "incomeThisMonth": "Income (this month)",
+        "expenses": "Expenses",
+        "expensesThisMonth": "Expenses (this month)",
+        "savings": "Savings",
+        "savingsThisMonth": "Savings (this month)",
+        "updatedNow": "Updated just now",
+        "objective": "Goal",
+        "vsLastMonth": "vs last month",
+        "expensesSummary": "Expenses Summary",
+        "thisMonth": "This Month",
+        "last6Months": "Last 6 months",
+        "categories": "Categories",
+        "recentMovements": "Recent Movements",
+        "viewAll": "View All",
+        "newMovement": "New Movement",
+        "description": "Description",
+        "category": "Category",
+        "date": "Date",
+        "amount": "Amount"
+    },
+    "settings": {
+        "title": "Settings",
+        "subtitle": "Manage your account and Gemini API Key",
+        "profile": {
+            "title": "Profile",
+            "username": "Username",
+            "interactionsUsed": "Interactions used",
+            "fullName": "Full name",
+            "fullNameHint": "This name will be used to generate your avatar initials",
+            "saveName": "Save Name",
+            "uploadPhoto": "Upload photo",
+            "changePhoto": "Change",
+            "photoHint": "JPG, PNG, GIF or WebP. Max 5MB."
+        },
+        "email": {
+            "title": "Email",
+            "current": "Current email",
+            "notConfigured": "Not configured",
+            "verified": "Verified",
+            "notVerified": "Not verified",
+            "new": "New email",
+            "change": "Change Email",
+            "resend": "Resend verification",
+            "checkInbox": "Check your inbox"
+        },
+        "apiKey": {
+            "title": "Gemini API Key",
+            "configured": "API Key configured",
+            "notConfigured": "No API Key",
+            "new": "New API Key",
+            "getKey": "Get your API Key at",
+            "save": "Save API Key"
+        },
+        "telegram": {
+            "title": "Telegram",
+            "linked": "Your Telegram is linked correctly.",
+            "notLinked": "Not linked",
+            "linkAccount": "Link Telegram",
+            "generateCode": "Generate link code",
+            "sendCode": "Send this code to the bot",
+            "expiresIn": "Expires in",
+            "openBot": "Open Bot"
+        },
+        "preferences": {
+            "title": "Preferences",
+            "currency": "Currency",
+            "timezone": "Timezone",
+            "language": "Language",
+            "languageHint": "More languages coming soon",
+            "save": "Save Preferences"
+        }
+    },
+    "auth": {
+        "login": {
+            "title": "Sign In",
+            "subtitle": "Sign in to continue",
+            "username": "Username",
+            "password": "Password",
+            "usernamePlaceholder": "Your username",
+            "passwordPlaceholder": "Your password",
+            "submit": "Sign in",
+            "loading": "Loading...",
+            "noAccount": "Don't have an account?",
+            "register": "Sign up here",
+            "backToHome": "Back to home page"
+        },
+        "loggingOut": "Logging out...",
+        "register": {
+            "title": "Create Account",
+            "subtitle": "Create your free account",
+            "fullName": "Full Name",
+            "fullNamePlaceholder": "Your name and surname",
+            "username": "Username (to sign in)",
+            "usernamePlaceholder": "Choose a username",
+            "usernameHint": "This will be your username to sign in",
+            "email": "Email",
+            "emailPlaceholder": "you{'@'}email.com",
+            "emailHint": "You will receive a verification link in your email",
+            "password": "Password",
+            "passwordPlaceholder": "Minimum 6 characters",
+            "confirmPassword": "Confirm password",
+            "confirmPasswordPlaceholder": "Repeat your password",
+            "submit": "Create account",
+            "submitting": "Creating account...",
+            "hasAccount": "Already have an account?",
+            "login": "Sign in",
+            "errors": {
+                "passwordMismatch": "Passwords do not match"
+            },
+            "success": {
+                "title": "Account created successfully!",
+                "messageWithEmail": "We have sent a verification email to",
+                "messageNoEmail": "Your account has been created. You can start using Gastiflow now.",
+                "verificationHint": "Check your inbox and click on the verification link to activate your account.",
+                "goToDashboard": "Go to Dashboard",
+                "resendEmail": "Resend email",
+                "resending": "Resending...",
+                "resendSuccess": "Verification email resent successfully"
+            }
+        }
+    },
+    "transaction": {
+        "add": "Add Transaction",
+        "type": "Type",
+        "expense": "Expense",
+        "income": "Income",
+        "description": "Description",
+        "amount": "Amount",
+        "category": "Category",
+        "date": "Date",
+        "save": "Save",
+        "cancel": "Cancel"
+    },
+    "categories": {
+        "Supermercado": "Grocery",
+        "Transporte": "Transportation",
+        "Restaurante": "Restaurant",
+        "Entretenimiento": "Entertainment",
+        "Salud": "Health",
+        "Servicios": "Utilities",
+        "Educación": "Education",
+        "Ropa": "Clothing",
+        "Tecnología": "Technology",
+        "Otros": "Other",
+        "Comida": "Food",
+        "Hogar": "Home",
+        "Viajes": "Travel",
+        "Gasolina": "Gas",
+        "Deportes": "Sports",
+        "Mascotas": "Pets",
+        "Regalos": "Gifts",
+        "Salario": "Salary",
+        "Freelance": "Freelance",
+        "Ventas": "Sales",
+        "Inversiones": "Investments"
+    },
+    "currencies": {
+        "COP": "🇨🇴 COP - Colombian Peso",
+        "USD": "🇺🇸 USD - US Dollar",
+        "EUR": "🇪🇺 EUR - Euro",
+        "ARS": "🇦🇷 ARS - Argentine Peso",
+        "MXN": "🇲🇽 MXN - Mexican Peso"
+    },
+    "timezones": {
+        "America/Bogota": "🇨🇴 Bogotá (GMT-5)",
+        "America/Mexico_City": "🇲🇽 Mexico City (GMT-6)",
+        "America/Buenos_Aires": "🇦🇷 Buenos Aires (GMT-3)",
+        "America/Lima": "🇵🇪 Lima (GMT-5)",
+        "America/Santiago": "🇨🇱 Santiago (GMT-4)",
+        "America/New_York": "🇺🇸 New York (GMT-5)",
+        "Europe/Madrid": "🇪🇸 Madrid (GMT+1)"
+    },
+    "languages": {
+        "es": "🇪🇸 Español",
+        "en": "🇬🇧 English"
+    }
+}

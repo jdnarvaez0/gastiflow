@@ -23,7 +23,7 @@
 | Layer | Technologies |
 |-------|-------------|
 | **Backend** | Python 3.10+, FastAPI, SQLAlchemy, python-telegram-bot |
-| **Frontend** | Nuxt 3, Vue 3, TailwindCSS, Chart.js |
+| **Frontend** | Nuxt 3, Vue 3, TailwindCSS, @nuxt/ui v4, Chart.js |
 | **AI** | Google Gemini 2.0 Flash |
 | **Database** | PostgreSQL |
 | **Deployment** | AWS EC2, Vercel, ngrok |
@@ -67,19 +67,27 @@ python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# Frontend
-cd ../frontend
+# Dashboard (App)
+cd ../apps/dashboard
+npm install
+
+# Landing Page (Marketing)
+cd ../apps/landing
 npm install
 ```
 
 ### Running the Application
 
 ```bash
-# Using Task (recommended)
+# Using PowerShell script (Windows - Recommended)
+.\start-app.ps1       # Start all services (API + Bot + Dashboard + Landing)
+
+# Using Task (cross-platform)
 task dev              # Start all services
 task dev:api          # API only
 task dev:bot          # Telegram bot only
-task dev:frontend     # Frontend only
+task dev:dashboard    # Dashboard only
+task dev:landing      # Landing only
 
 # Using Docker
 docker-compose -f docker-compose.yml -f docker-compose.override.yml up
@@ -87,11 +95,13 @@ docker-compose -f docker-compose.yml -f docker-compose.override.yml up
 # Manual (separate terminals)
 cd backend && uvicorn web.main:app --reload --port 8000
 cd backend && python run_bot.py
-cd frontend && npm run dev
+cd apps/dashboard && npm run dev
+cd apps/landing && npm run dev -- --port 3001
 ```
 
 **Access Points:**
-- 🌐 Frontend: http://localhost:3000
+- 🌐 Landing Page: http://localhost:3001 (Marketing site)
+- 🎨 Dashboard: http://localhost:3000 (App - requires login)
 - 📚 API Docs: http://localhost:8000/docs
 - 🏥 Health: http://localhost:8000/api/health
 
@@ -123,10 +133,15 @@ gastiflow/
 │   ├── services/             # Business logic
 │   ├── models/               # SQLAlchemy models
 │   └── migrations/           # Database migrations
-├── frontend/
-│   ├── pages/                # Routes
-│   ├── components/           # Vue components
-│   └── composables/          # Reusable logic
+├── apps/
+│   ├── dashboard/            # Main app (SSR - requires auth)
+│   │   ├── pages/            # Routes (dashboard, settings, etc.)
+│   │   ├── components/       # Vue components
+│   │   ├── composables/      # Reusable logic (useAuth, useApi)
+│   │   └── layouts/          # App layouts
+│   └── landing/              # Marketing site (SSG - public)
+│       ├── pages/            # Landing page
+│       └── components/       # Marketing components
 ├── .github/workflows/        # CI/CD
 ├── docker-compose.override.yml  # Dev services
 ├── Taskfile.yml             # Task commands
@@ -139,10 +154,14 @@ gastiflow/
 
 ```bash
 # Development
-task dev              # Start all services
+task dev              # Start all services (API + Bot + Dashboard + Landing)
 task dev:api          # API server only
 task dev:bot          # Telegram bot only
-task dev:frontend     # Frontend only
+task dev:dashboard    # Dashboard only (port 3000)
+task dev:landing      # Landing page only (port 3001)
+
+# Using PowerShell (Windows)
+.\start-app.ps1       # Start all services with single command
 
 # Testing
 task test             # Run all tests
@@ -232,12 +251,14 @@ DEPLOY_DIR                # Deploy directory (default: /opt/gastiflow)
 
 ## 🌍 Deployment
 
-**Production Setup:**
-- Frontend: [Vercel](https://gastiflow.vercel.app)
-- Backend: AWS EC2 + ngrok tunnel
-- Database: PostgreSQL (Supabase/Neon compatible)
+**Architecture:**
+- **Landing Page** (SSG): Vercel/Netlify (marketing site)
+- **Dashboard** (SSR): Render/Railway/VPS (app with auth)
+- **Backend API**: Render/Railway/VPS
+- **Telegram Bot**: Background worker (always-on)
+- **Database**: PostgreSQL (Supabase/Neon/Railway)
 
-See [DEPLOY.md](DEPLOY.md) for detailed instructions.
+See [DEPLOY_NEW.md](DEPLOY_NEW.md) for detailed instructions on the new architecture.
 
 ## 🔧 Environment Variables
 

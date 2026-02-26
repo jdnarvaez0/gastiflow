@@ -338,7 +338,7 @@
 <script setup lang="ts">
 const router = useRouter()
 const { setLocale  } = useI18n()
-const { user, isLoading, error, updateSettings, logout, isAuthenticated, init, changeEmail, resendVerification, uploadProfilePicture, deleteProfilePicture, generateLinkCode, checkLinkStatus, unlinkTelegram } = useAuth()
+const { user, isLoading, error, updateSettings, logout, isAuthenticated, init, changeEmail, resendVerification, uploadProfilePicture, deleteProfilePicture, generateLinkCode, checkLinkStatus, unlinkTelegram, isLoggingOut } = useAuth()
 const { success: notifySuccess, error: notifyError } = useNotification()
 
 const geminiApiKey = ref('')
@@ -503,7 +503,7 @@ const handleResendVerification = async () => {
 
 const handleLogout = () => {
     logout()
-    router.push('/login')
+    // No router.push needed - logout redirects to landing page
 }
 
 const handleSaveFullName = async () => {
