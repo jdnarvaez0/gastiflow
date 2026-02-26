@@ -4,10 +4,10 @@
         <header class="fixed top-0 left-0 right-0 z-50 px-4 sm:px-8 py-4 sm:py-5 bg-[rgba(17,17,27,0.92)] backdrop-blur-xl border-b border-white/5">
             <div class="flex justify-between items-center max-w-7xl mx-auto">
                 <!-- Logo -->
-                <NuxtLink to="/" class="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold text-accent hover:scale-[1.02] transition-transform no-underline">
+                <a :href="landingUrl" class="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold text-accent hover:scale-[1.02] transition-transform no-underline">
                     <i class="fas fa-wallet text-xl sm:text-2xl bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent"></i>
                     <span class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">Gastiflow</span>
-                </NuxtLink>
+                </a>
 
                 <!-- Desktop Navigation -->
                 <nav class="hidden md:flex items-center gap-4">
@@ -99,6 +99,7 @@
 
 <script setup lang="ts">
 const { isAuthenticated } = useAuth()
+const { public: { landingUrl } } = useRuntimeConfig()
 
 // Mobile menu state
 const isMobileMenuOpen = ref(false)

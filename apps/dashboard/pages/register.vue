@@ -137,9 +137,9 @@
                     <NuxtLink to="/login" class="text-accent font-medium hover:underline">{{ $t('auth.register.login') }}</NuxtLink>
                 </p>
                 <p class="mt-3">
-                    <NuxtLink to="/" class="text-gray-400 hover:text-accent transition-colors">
+                    <a :href="landingUrl" class="text-gray-400 hover:text-accent transition-colors">
                         <i class="fas fa-arrow-left"></i> {{ $t('auth.login.backToHome') }}
-                    </NuxtLink>
+                    </a>
                 </p>
             </div>        </div>
     </div>
@@ -154,6 +154,7 @@ definePageMeta({
 const router = useRouter()
 const { t } = useI18n()
 const { register, resendVerification, isLoading, error, isAuthenticated } = useAuth()
+const { public: { landingUrl } } = useRuntimeConfig()
 
 const fullName = ref('')
 const username = ref('')
