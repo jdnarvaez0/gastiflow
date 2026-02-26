@@ -36,7 +36,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiUrl: process.env.NUXT_API_URL || 'http://localhost:8000',
-      telegramBotUsername: process.env.NUXT_TELEGRAM_BOT_USERNAME || 'gastiflow_dev_bot'
+      telegramBotUsername: process.env.NUXT_TELEGRAM_BOT_USERNAME || 'gastiflow_dev_bot',
+      landingUrl: process.env.NUXT_PUBLIC_LANDING_URL || 'http://localhost:3001'
     }
   },
 
@@ -63,6 +64,6 @@ export default defineNuxtConfig({
       '/api/_nuxt_icon/**': { cache: { maxAge: 1728000 } }
     }
   },
-  
+
   compatibilityDate: '2026-02-26'
 })

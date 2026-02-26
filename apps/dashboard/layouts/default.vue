@@ -8,7 +8,7 @@
     
     <!-- Desktop Sidebar (hidden on mobile) -->
     <nav class="hidden lg:flex fixed top-0 left-0 h-screen w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 px-3 py-4 flex-col z-50">
-      <a href="http://localhost:3001" class="flex items-center gap-2 mb-4 px-2 hover:opacity-80 transition-opacity">
+      <a :href="landingUrl" class="flex items-center gap-2 mb-4 px-2 hover:opacity-80 transition-opacity">
         <i class="fas fa-wallet text-xl text-primary"></i>
         <span class="text-lg font-bold text-primary">Gastiflow</span>
       </a>
@@ -181,6 +181,7 @@ const router = useRouter()
 const route = useRoute()
 const { setLocale } = useI18n()
 const { user, isAuthenticated, logout, init, isLoggingOut } = useAuth()
+const { public: { landingUrl } } = useRuntimeConfig()
 
 // Modal state
 const showAddModal = ref(false)

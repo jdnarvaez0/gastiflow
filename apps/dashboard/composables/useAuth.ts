@@ -76,10 +76,10 @@ export const useAuth = () => {
         // Manejar errores de $fetch de Nuxt
         if (err.data) {
             const detail = err.data.detail || err.data.message || err.data.error
-            
+
             // Si el detalle es un string
             if (typeof detail === 'string') return detail
-            
+
             // Si el detalle es un array (errores de validación Pydantic)
             if (Array.isArray(detail)) {
                 return detail.map((item: any) => {
@@ -89,7 +89,7 @@ export const useAuth = () => {
                         if (message.startsWith('Value error, ')) {
                             message = message.replace('Value error, ', '')
                         }
-                        
+
                         // Agregar contexto del campo si está disponible
                         if (item.loc && Array.isArray(item.loc)) {
                             const field = item.loc[item.loc.length - 1]
@@ -110,12 +110,12 @@ export const useAuth = () => {
                     return JSON.stringify(item)
                 }).join('. ')
             }
-            
+
             // Si hay un hint en la respuesta, usarlo
             if (err.data.hint) {
                 return err.data.hint
             }
-            
+
             // Si hay error_id, mostrarlo para debugging
             if (err.data.error_id) {
                 console.error(`Error ID: ${err.data.error_id}`)
@@ -141,19 +141,19 @@ export const useAuth = () => {
         if (err.statusCode === 429) {
             return 'Demasiadas solicitudes. Por favor espera un momento antes de intentar nuevamente.'
         }
-        
+
         if (err.statusCode === 401) {
             return 'Usuario o contraseña incorrectos'
         }
-        
+
         if (err.statusCode === 403) {
             return 'No tienes permiso para realizar esta acción'
         }
-        
+
         if (err.statusCode === 404) {
             return 'El recurso solicitado no fue encontrado'
         }
-        
+
         if (err.statusCode === 422) {
             return 'Los datos proporcionados no son válidos. Por favor verifica la información.'
         }
@@ -288,16 +288,17 @@ export const useAuth = () => {
     // Logout
     const logout = async () => {
         isLoggingOut.value = true
-        
+
         // Small delay to show the loading state
         await new Promise(resolve => setTimeout(resolve, 300))
-        
+
         token.value = null
         user.value = null
         if (process.client) {
             localStorage.removeItem('gastiflow_token')
             // Redirect to landing page after logout
-            window.location.href = 'http://localhost:3001'
+            const landingUrl = config.public.landingUrl || 'http://localhost:3001'
+            window.location.href = landingUrl as string
         }
     }
 

@@ -25,7 +25,8 @@ export default defineNuxtRouteMiddleware((to, from) => {
 
         // If no token and trying to access protected route, redirect to landing
         if (!token) {
-            return navigateTo('http://localhost:3001', { external: true })
+            const { public: { landingUrl } } = useRuntimeConfig()
+            return navigateTo(landingUrl as string || 'http://localhost:3001', { external: true })
         }
     }
 })
