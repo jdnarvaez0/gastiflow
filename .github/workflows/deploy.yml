@@ -1,200 +1,25 @@
-name: Deploy to EC2
+# ---------------------------------------------------------------------------
+# NOTA (2026-10-17): El despliegue automatico a AWS EC2 fue DESHABILITADO.
+# La produccion ahora corre en un VPS propio (systemd + nginx + PostgreSQL).
+#
+# Para actualizar la app en produccion: conectarse por SSH al VPS y ejecutar
+# el script de actualizacion (git pull + dependencias + migraciones + restart
+# de los servicios systemd gastiflow-api y gastiflow-bot).
+#
+# Este workflow ya NO despliega a ningun lado; queda solo como recordatorio
+# manual (Actions -> Run workflow).
+# ---------------------------------------------------------------------------
+name: Deploy (informativo - deploy manual en VPS)
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:  # Permite ejecutar manualmente
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  info:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -e  # Exit on any error
-            
-            echo "🚀 Starting deployment to EC2..."
-            cd ~/gastiflow
-            
-            # Backup .env file (it's in .gitignore and will be deleted by git reset)
-            echo "💾 Backing up .env file..."
-            if [ -f .env ]; then
-              cp .env /tmp/gastiflow_env_backup
-              echo "✅ .env backed up"
-            else
-              echo "⚠️  No .env file found to backup"
-            fi
-            
-            # Backup current version (in case of rollback)
-            echo "📦 Creating backup..."
-            BACKUP_DIR=~/gastiflow_backups/$(date +%Y%m%d_%H%M%S)
-            mkdir -p $BACKUP_DIR
-            cp -r backend $BACKUP_DIR/ || echo "⚠️  Backup failed, continuing..."
-
-            # Rotate backups (keep last 5)
-            echo "🧹 Cleaning up old backups..."
-            # Check if directory exists first
-            if [ -d ~/gastiflow_backups ]; then
-              cd ~/gastiflow_backups
-              # List directories by time (newest first), skip first 5, delete the rest
-              # Use sudo to handle permission issues
-              ls -dt */ 2>/dev/null | tail -n +6 | xargs -r sudo rm -rf || echo "⚠️  Some old backups could not be deleted"
-              echo "✅ Old backups cleaned"
-            fi
-            
-            # Pull latest changes
-            echo "📥 Pulling latest changes from main..."
-            cd ~/gastiflow
-            git fetch origin
-            git reset --hard origin/main
-            
-            # Restore .env file
-            echo "♻️  Restoring .env file..."
-            if [ -f /tmp/gastiflow_env_backup ]; then
-              cp /tmp/gastiflow_env_backup .env
-              echo "✅ .env restored"
-            else
-              echo "❌ ERROR: No .env backup found!"
-              echo "⚠️  DEPLOYMENT ABORTED - .env file missing"
-              exit 1
-            fi
-            
-            # Update backend dependencies
-            echo "📦 Installing/updating dependencies..."
-            cd backend
-            source .venv/bin/activate
-            
-            # Install new security dependencies
-            pip install --upgrade pip --quiet
-            pip install -r requirements.txt --quiet
-            
-            # Verify critical dependencies
-            echo "🔍 Verifying security dependencies..."
-            python -c "import slowapi; print('✅ slowapi installed')" || echo "❌ slowapi missing"
-            python -c "import sentry_sdk; print('✅ sentry-sdk installed')" || echo "❌ sentry-sdk missing"
-            
-            # Check if JWT_SECRET_KEY is set (check in root .env)
-            echo "🔑 Verifying environment configuration..."
-            cd ..
-            if ! grep -q "JWT_SECRET_KEY" .env; then
-              echo "❌ ERROR: JWT_SECRET_KEY not set in .env"
-              echo "⚠️  DEPLOYMENT ABORTED - Please set JWT_SECRET_KEY in production .env"
-              exit 1
-            fi
-            echo "✅ JWT_SECRET_KEY found in .env"
-            
-            # Run database migrations (from project root where .env is)
-            echo "🗄️  Running database migrations..."
-            cd ~/gastiflow
-            python backend/migrations/add_refresh_tokens_table.py || echo "⚠️  Migration already applied or failed"
-            
-            # Clean up expired refresh tokens
-            echo "🧹 Cleaning up expired tokens..."
-            python -c "from services.database_service import DatabaseService; import os; db = DatabaseService(os.getenv('DATABASE_URL')); db.cleanup_expired_tokens()" || echo "⚠️  Cleanup skipped"
-            
-            # Restart services with proper error handling
-            echo "🔄 Restarting services..."
-            
-            # Restart bot
-            if sudo systemctl restart gastiflow-bot; then
-              echo "✅ Bot restarted successfully"
-            else
-              echo "❌ Bot restart failed"
-              exit 1
-            fi
-            
-            # Restart API
-            if sudo systemctl restart gastiflow-api; then
-              echo "✅ API restarted successfully"
-            else
-              echo "❌ API restart failed"
-              exit 1
-            fi
-            
-            # Wait for services to start
-            echo "⏳ Waiting for services to start..."
-            sleep 5
-            
-            # Verify services are running
-            echo ""
-            echo "=== 📊 Service Status ==="
-            
-            # Check bot status
-            if sudo systemctl is-active --quiet gastiflow-bot; then
-              echo "✅ Bot: RUNNING"
-              sudo systemctl status gastiflow-bot --no-pager | head -3
-            else
-              echo "❌ Bot: FAILED"
-              sudo journalctl -u gastiflow-bot -n 20 --no-pager
-              exit 1
-            fi
-            
-            echo ""
-            
-            # Check API status
-            if sudo systemctl is-active --quiet gastiflow-api; then
-              echo "✅ API: RUNNING"
-              sudo systemctl status gastiflow-api --no-pager | head -3
-            else
-              echo "❌ API: FAILED"
-              sudo journalctl -u gastiflow-api -n 20 --no-pager
-              exit 1
-            fi
-            
-            # Test API health
-            echo ""
-            echo "=== 🏥 Health Check ==="
-            if curl -f -s http://localhost:8000/api/dashboard > /dev/null; then
-              echo "✅ API health check passed"
-            else
-              echo "❌ API health check failed"
-              exit 1
-            fi
-            
-            # Check for security headers
-            echo ""
-            echo "=== 🔒 Security Verification ==="
-            HEADERS=$(curl -I -s http://localhost:8000/api/dashboard)
-            
-            if echo "$HEADERS" | grep -q "X-Content-Type-Options"; then
-              echo "✅ Security headers present"
-            else
-              echo "⚠️  Security headers missing"
-            fi
-            
-            # Show recent logs for monitoring
-            echo ""
-            echo "=== 📋 Recent API Logs (last 10 lines) ==="
-            sudo journalctl -u gastiflow-api -n 10 --no-pager | grep -E "SECURITY|ERROR|WARNING" || echo "No security events in recent logs"
-            
-            echo ""
-            echo "✅ Deployment completed successfully!"
-            echo "📅 Deployed at: $(date)"
-            echo "🔖 Commit: $(git rev-parse --short HEAD)"
-            echo "📝 Backup location: $BACKUP_DIR"
-
-      - name: Notify on failure
-        if: failure()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            echo "❌ DEPLOYMENT FAILED"
-            echo "Checking service logs..."
-            echo "=== Bot Logs ==="
-            sudo journalctl -u gastiflow-bot -n 30 --no-pager
-            echo ""
-            echo "=== API Logs ==="
-            sudo journalctl -u gastiflow-api -n 30 --no-pager
+      - name: Recordatorio
+        run: |
+          echo "El deploy automatico esta deshabilitado."
+          echo "Produccion corre en un VPS (no en AWS EC2)."
+          echo "Para actualizar: conectarse por SSH al VPS y ejecutar el script de actualizacion del backend."
