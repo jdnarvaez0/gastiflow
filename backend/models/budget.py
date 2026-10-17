@@ -3,12 +3,14 @@ Budget models for Gastiflow.
 Manages monthly budgets per category with alerts.
 """
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
-from sqlalchemy.orm import declarative_base
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 
-Base = declarative_base()
+# IMPORTANTE: usar el Base compartido de models/expense.py.
+# Antes este archivo definia su propio declarative_base(), por lo que
+# Base.metadata.create_all() no creaba la tabla 'budgets' (bug).
+from models.expense import Base
 
 
 # Modelo SQLAlchemy para PostgreSQL
